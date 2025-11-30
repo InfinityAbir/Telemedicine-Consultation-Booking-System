@@ -1,0 +1,153 @@
+﻿@model IEnumerable<Telemed.Models.Feedback>
+@{
+    ViewData["Title"] = "All Feedbacks";
+}
+
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-primary">All Patient Feedbacks</h2>
+        <p class="text-muted">Monitor feedback across all doctors and patients.</p>
+    </div>
+
+    <div class="row mb-4 g-3 align-items-center">
+        <div class="col-md-4">
+            <input type="text" id="searchPatient" class="form-control" placeholder="Search by patient name">
+        </div>
+        <div class="col-md-4">
+            <input type="text" id="searchDoctor" class="form-control" placeholder="Search by doctor name">
+        </div>
+        <div class="col-md-4 text-end">
+            <select id="sortFeedback" class="form-select">
+                <option value="dateDesc">Newest First</option>
+                <option value="dateAsc">Oldest First</option>
+                <option value="ratingDesc">Highest Rating</option>
+                <option value="ratingAsc">Lowest Rating</option>
+            </select>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-chat-left-dots fs-1 text-secondary"></i>
+            <p class="mt-3 text-muted">No feedback found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4" id="feedbackContainer">
+            @foreach (var item in Model)
+            {
+                <div class="col-md-6 col-lg-4 feedback-card-wrapper">
+                    <div class="card shadow-sm border-0 rounded-4 feedback-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="Patient"
+                                     class="rounded-circle me-3" width="50" height="50">
+                                <div>
+                                    <h6 class="mb-0 fw-semibold">@item.Patient?.User?.FullName</h6>
+                                    <small class="text-muted">Patient</small>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= item.Rating)
+                                    {
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-star text-muted"></i>
+                                    }
+                                }
+                            </div>
+
+                            <p class="text-secondary mb-2">@item.Comment</p>
+
+                            <small class="text-muted">
+                                Doctor: <strong>@item.Doctor?.User?.FullName</strong> <br />
+                                Appointment ID: @item.AppointmentId <br />
+                                @item.CreatedAt.ToString("MMM dd, yyyy")
+                                @if (item.UpdatedAt.HasValue)
+                                {
+                                    <span>(edited)</span>
+                                }
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        const feedbackCards = Array.from(document.querySelectorAll('.feedback-card-wrapper'));
+
+        // Simple filtering
+        const searchPatientInput = document.getElementById('searchPatient');
+        const searchDoctorInput = document.getElementById('searchDoctor');
+        const sortSelect = document.getElementById('sortFeedback');
+
+        function filterAndSort() {
+            const patientQuery = searchPatientInput.value.toLowerCase();
+            const doctorQuery = searchDoctorInput.value.toLowerCase();
+            const sortValue = sortSelect.value;
+
+            // Filter
+            feedbackCards.forEach(cardWrapper => {
+                const patientName = cardWrapper.querySelector('h6').innerText.toLowerCase();
+                const doctorName = cardWrapper.querySelector('small strong').innerText.toLowerCase();
+
+                const matchesPatient = patientName.includes(patientQuery);
+                const matchesDoctor = doctorName.includes(doctorQuery);
+
+                cardWrapper.style.display = (matchesPatient && matchesDoctor) ? 'block' : 'none';
+            });
+
+            // Sort
+            const container = document.getElementById('feedbackContainer');
+            const sorted = Array.from(container.children)
+                .filter(c => c.style.display !== 'none')
+                .sort((a, b) => {
+                    const aDate = new Date(a.querySelector('small').innerText.split('\n')[2].trim());
+                    const bDate = new Date(b.querySelector('small').innerText.split('\n')[2].trim());
+
+                    const aRating = parseInt(a.querySelectorAll('.bi-star-fill').length);
+                    const bRating = parseInt(b.querySelectorAll('.bi-star-fill').length);
+
+                    switch (sortValue) {
+                        case 'dateAsc': return aDate - bDate;
+                        case 'dateDesc': return bDate - aDate;
+                        case 'ratingAsc': return aRating - bRating;
+                        case 'ratingDesc': return bRating - aRating;
+                    }
+                });
+
+            sorted.forEach(card => container.appendChild(card));
+        }
+
+        searchPatientInput.addEventListener('input', filterAndSort);
+        searchDoctorInput.addEventListener('input', filterAndSort);
+        sortSelect.addEventListener('change', filterAndSort);
+    </script>
+
+    <style>
+        .feedback-card {
+            background: #fff;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+            .feedback-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+            }
+
+        .fw-semibold {
+            font-weight: 600;
+        }
+    </style>
+}

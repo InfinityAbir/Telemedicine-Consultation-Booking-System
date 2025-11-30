@@ -1,0 +1,84 @@
+﻿@model Telemed.Models.Doctor
+
+@{
+    ViewData["Title"] = "Delete Doctor";
+}
+
+<style>
+    body {
+        background-color: #f4f6f8;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .delete-card {
+        background: linear-gradient(145deg, #fff, #f8d7da);
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin: 50px auto;
+        max-width: 600px;
+        text-align: center;
+    }
+
+    .delete-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #721c24;
+        margin-bottom: 20px;
+    }
+
+    .doctor-info {
+        text-align: left;
+        margin-bottom: 15px;
+        font-size: 1rem;
+        color: #333;
+    }
+
+    .btn-delete {
+        border-radius: 25px;
+        font-weight: 600;
+        padding: 10px 25px;
+        background-color: #dc3545;
+        color: #fff;
+        border: none;
+        margin-right: 10px;
+        transition: transform 0.3s;
+    }
+
+        .btn-delete:hover {
+            transform: scale(1.05);
+            background-color: #b02a37;
+        }
+
+    .btn-back {
+        border-radius: 25px;
+        font-weight: 600;
+        padding: 10px 25px;
+        background-color: #6c757d;
+        color: #fff;
+        border: none;
+        transition: transform 0.3s;
+        text-decoration: none;
+    }
+
+        .btn-back:hover {
+            transform: scale(1.05);
+            background-color: #5a6268;
+            color: #fff;
+        }
+</style>
+
+<div class="delete-card">
+    <div class="delete-title">Are you sure you want to delete this doctor?</div>
+
+    <div class="doctor-info"><strong>Doctor Name:</strong> @Model.User?.FullName</div>
+    <div class="doctor-info"><strong>Specialization:</strong> @Model.Specialization</div>
+    <div class="doctor-info"><strong>Qualification:</strong> @Model.Qualification</div>
+    <div class="doctor-info"><strong>Status:</strong> @(Model.IsApproved ? "Approved" : "Pending")</div>
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="DoctorId" />
+        <button type="submit" class="btn btn-delete">Delete</button>
+        <a asp-action="Index" class="btn btn-back">Back to List</a>
+    </form>
+</div>

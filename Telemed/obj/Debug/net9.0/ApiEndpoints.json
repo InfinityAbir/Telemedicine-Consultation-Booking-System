@@ -1,0 +1,12 @@
+[
+  {
+    "ContainingType": "Telemed.Controllers.WebhookController",
+    "Method": "Post",
+    "RelativePath": "webhook",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]

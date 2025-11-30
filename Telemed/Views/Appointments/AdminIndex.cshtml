@@ -1,0 +1,173 @@
+﻿@model IEnumerable<Telemed.Models.Appointment>
+
+@{
+    ViewData["Title"] = "All Appointments (Admin)";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+<style>
+    body {
+        background: #f6f9fc;
+        font-family: "Inter", sans-serif;
+    }
+
+    .page-title {
+        font-weight: 700;
+        font-size: 1.6rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        color: #1d4ed8;
+    }
+
+    /* Card Style */
+    .appt-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        transition: .25s ease;
+        border: 1px solid #eef2f7;
+        cursor: pointer;
+    }
+
+        .appt-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.08);
+        }
+
+    .appt-label {
+        color: #6b7280;
+        font-size: .85rem;
+        margin-bottom: 3px;
+    }
+
+    .appt-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 10px;
+    }
+
+    .appt-time {
+        font-size: .9rem;
+        font-weight: 600;
+        margin-top: 5px;
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Subtle fade-in */
+    .fade-item {
+        opacity: 0;
+        transform: translateY(10px);
+        animation: fadeIn .5s forwards;
+    }
+    @@keyframes fadeIn {
+        to
+
+    {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+</style>
+
+<div class="container py-4">
+
+    <div class="page-title">
+        <i class="bi bi-calendar-check"></i>
+        All Appointments
+    </div>
+
+    <!-- Filters -->
+    <div class="row g-2 mb-4">
+        <div class="col-sm-4">
+            <input type="text" id="patientFilter" class="form-control" placeholder="Filter by patient">
+        </div>
+        <div class="col-sm-4">
+            <input type="text" id="doctorFilter" class="form-control" placeholder="Filter by doctor">
+        </div>
+        <div class="col-sm-4">
+            <input type="date" id="dateFilter" class="form-control">
+        </div>
+    </div>
+
+    <div class="row g-4" id="appointmentsContainer">
+        @foreach (var appt in Model)
+        {
+            var patient = appt.Patient?.User?.FullName ?? "-";
+            var doctor = appt.Doctor?.User?.FullName ?? "-";
+            var date = appt.ScheduledAt.ToString("yyyy-MM-dd");
+            var dateText = appt.ScheduledAt.ToString("dd MMM yyyy, hh:mm tt");
+
+            <div class="col-md-6 col-lg-4 fade-item appt-card-container appointment-card"
+                 data-patient="@patient"
+                 data-doctor="@doctor"
+                 data-date="@date">
+
+                <div class="appt-card">
+
+                    <div>
+                        <div class="appt-label">Patient</div>
+                        <div class="appt-value">@patient</div>
+                    </div>
+
+                    <div>
+                        <div class="appt-label">Doctor</div>
+                        <div class="appt-value">@doctor</div>
+                    </div>
+
+                    <div class="appt-time">
+                        <i class="bi bi-clock"></i> @dateText
+                    </div>
+
+                </div>
+
+            </div>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center mt-4">No appointments found.</div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        const patientInput = document.getElementById("patientFilter");
+        const doctorInput = document.getElementById("doctorFilter");
+        const dateInput = document.getElementById("dateFilter");
+        const cards = document.querySelectorAll(".appointment-card");
+
+        function filter() {
+            const p = patientInput.value.toLowerCase();
+            const d = doctorInput.value.toLowerCase();
+            const date = dateInput.value;
+
+            cards.forEach(c => {
+                const cp = c.dataset.patient.toLowerCase();
+                const cd = c.dataset.doctor.toLowerCase();
+                const cdate = c.dataset.date;
+
+                const match =
+                    cp.includes(p) &&
+                    cd.includes(d) &&
+                    (date === "" || cdate === date);
+
+                c.style.display = match ? "block" : "none";
+            });
+        }
+
+        patientInput.addEventListener("input", filter);
+        doctorInput.addEventListener("input", filter);
+        dateInput.addEventListener("change", filter);
+    </script>
+}

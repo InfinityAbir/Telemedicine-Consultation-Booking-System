@@ -1,0 +1,147 @@
+﻿@model Telemed.ViewModels.PrescriptionViewModel
+@{
+    ViewData["Title"] = "Create Prescription";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+<style>
+    body {
+        background: #f7f9fb;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .prescription-card {
+        border: none;
+        border-radius: 18px;
+        background: #ffffff;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .prescription-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+
+    .prescription-header {
+        background: linear-gradient(90deg, #007bff 0%, #00c6ff 100%);
+        color: white;
+        border-radius: 18px 18px 0 0;
+        padding: 1.2rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+        .prescription-header i {
+            font-size: 1.5rem;
+        }
+
+    .form-label {
+        font-weight: 600;
+        color: #344767;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #dfe4ea;
+        box-shadow: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.2);
+        }
+
+    textarea.form-control {
+        resize: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #007bff, #00c6ff);
+        border: none;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: 0.3s;
+    }
+
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #0056d2, #00a2e0);
+            transform: translateY(-1px);
+        }
+
+    .btn-outline-secondary {
+        border-radius: 10px;
+    }
+
+    .custom-file-input {
+        border-radius: 10px;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="card prescription-card shadow-lg">
+        <div class="prescription-header">
+            <i class="bi bi-clipboard2-plus"></i>
+            <h4 class="mb-0 fw-semibold">Create New Prescription</h4>
+        </div>
+
+        <div class="card-body p-4">
+            <form asp-action="Create" enctype="multipart/form-data" class="needs-validation" novalidate>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="AppointmentId" class="form-label">Appointment</label>
+                        <select asp-for="AppointmentId" class="form-select" asp-items="ViewBag.AppointmentId" required>
+                            <option value="">Select an appointment...</option>
+                        </select>
+                        <span asp-validation-for="AppointmentId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="MedicineName" class="form-label">Medicine Name</label>
+                        <input asp-for="MedicineName" class="form-control" placeholder="Enter medicine name" required />
+                        <span asp-validation-for="MedicineName" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Dosage" class="form-label">Dosage</label>
+                        <input asp-for="Dosage" class="form-control" placeholder="e.g., 1 tablet twice a day" required />
+                        <span asp-validation-for="Dosage" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Duration" class="form-label">Duration</label>
+                        <input asp-for="Duration" class="form-control" placeholder="e.g., 5 days" required />
+                        <span asp-validation-for="Duration" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label asp-for="Notes" class="form-label">Additional Notes</label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Enter notes or instructions"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Upload Prescription File (optional)</label>
+                        <input type="file" class="form-control custom-file-input" name="file" accept=".pdf,.jpg,.jpeg,.png" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <a asp-action="Index" class="btn btn-outline-secondary me-3 px-4">
+                        <i class="bi bi-arrow-left-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-check-circle"></i> Save Prescription
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

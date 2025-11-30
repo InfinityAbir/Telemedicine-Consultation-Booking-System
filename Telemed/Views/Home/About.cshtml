@@ -1,0 +1,538 @@
+﻿@{
+    ViewData["Title"] = "About Us - TeleMed";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: #ffffff;
+        color: #1a1a1a;
+    }
+
+    /* Hero Section - Modern Minimalist */
+    .about-hero {
+        background: linear-gradient(135deg, #0066FF 0%, #00D4AA 100%);
+        position: relative;
+        overflow: hidden;
+        padding: 80px 20px 120px;
+    }
+
+        .about-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='40' fill='rgba(255,255,255,0.05)'/%3E%3C/svg%3E");
+            background-size: 60px 60px;
+            opacity: 0.3;
+        }
+
+    .hero-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 2;
+    }
+
+    .brand-logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 12px 24px;
+        border-radius: 50px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+        .brand-logo i {
+            font-size: 1.5rem;
+            color: #FF6B6B;
+        }
+
+        .brand-logo span {
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+    .about-hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 20px;
+        letter-spacing: -1px;
+    }
+
+    .about-hero .subtitle {
+        font-size: 1.3rem;
+        color: rgba(255, 255, 255, 0.95);
+        margin-bottom: 15px;
+        font-weight: 500;
+    }
+
+    .about-hero .tagline {
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.85);
+        font-style: italic;
+        font-weight: 400;
+    }
+
+    /* Container */
+    .content-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    /* Mission Cards */
+    .mission-section {
+        margin-top: -60px;
+        position: relative;
+        z-index: 3;
+        padding-bottom: 80px;
+    }
+
+    .mission-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .mission-card {
+        background: white;
+        border-radius: 24px;
+        padding: 40px 32px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f0f0f0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+        .mission-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 102, 255, 0.15);
+            border-color: #0066FF;
+        }
+
+        .mission-card .icon-wrapper {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #0066FF, #00D4AA);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+            .mission-card .icon-wrapper i {
+                font-size: 1.5rem;
+                color: white;
+            }
+
+        .mission-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .mission-card p {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #666;
+            margin: 0;
+        }
+
+    /* Features Section */
+    .features-section {
+        padding: 80px 20px;
+        background: #F9FAFB;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .section-header p {
+            font-size: 1.1rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+    }
+
+    .feature-card {
+        background: white;
+        border-radius: 20px;
+        padding: 36px 28px;
+        text-align: center;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #0066FF, #00D4AA);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-card:hover {
+            border-color: #0066FF;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 102, 255, 0.12);
+        }
+
+        .feature-card .icon-box {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #E8F4FF, #E0F9F4);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+            .feature-card .icon-box i {
+                font-size: 2rem;
+                background: linear-gradient(135deg, #0066FF, #00D4AA);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+        .feature-card h4 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #666;
+            margin: 0;
+        }
+
+    /* Stats Section */
+    .stats-section {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        padding: 80px 20px;
+        margin: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 102, 255, 0.15), transparent);
+            border-radius: 50%;
+        }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 60px;
+        max-width: 1000px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 2;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+        .stat-item h4 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0066FF, #00D4AA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .stat-item p {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+            margin: 0;
+        }
+
+    /* Team Section */
+    .team-section {
+        padding: 80px 20px;
+    }
+
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 32px;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .team-card {
+        background: white;
+        border-radius: 24px;
+        padding: 32px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        border: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+    }
+
+        .team-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .team-card .image-wrapper {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 4px solid #F9FAFB;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+            .team-card .image-wrapper::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                border: 2px solid transparent;
+                background: linear-gradient(135deg, #0066FF, #00D4AA) border-box;
+                -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+                -webkit-mask-composite: xor;
+                mask-composite: exclude;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+        .team-card:hover .image-wrapper::after {
+            opacity: 1;
+        }
+
+        .team-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .team-card h5 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .team-card p {
+            font-size: 0.95rem;
+            color: #666;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .about-hero h1
+
+    {
+        font-size: 2.5rem;
+    }
+
+    .about-hero .subtitle {
+        font-size: 1.1rem;
+    }
+
+    .section-header h2 {
+        font-size: 2rem;
+    }
+
+    .mission-grid,
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        gap: 40px;
+    }
+
+    .stat-item h4 {
+        font-size: 2.5rem;
+    }
+
+    }
+</style>
+
+<main>
+    <!-- Hero Section -->
+    <section class="about-hero">
+        <div class="hero-content">
+            <div class="brand-logo">
+                <i class="fas fa-heartbeat"></i>
+                <span>TeleMed</span>
+            </div>
+            <h1>About TeleMed</h1>
+            <p class="subtitle">Your trusted online healthcare partner</p>
+            <p class="tagline">"Bringing healthcare closer to you, wherever you are."</p>
+        </div>
+    </section>
+
+    <!-- Mission, Vision, Values Cards -->
+    <section class="mission-section">
+        <div class="content-container">
+            <div class="mission-grid">
+                <div class="mission-card">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-bullseye"></i>
+                    </div>
+                    <h3>Our Mission</h3>
+                    <p>To provide accessible, affordable, and high-quality healthcare services to everyone, anywhere, through innovative online solutions.</p>
+                </div>
+                <div class="mission-card">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-eye"></i>
+                    </div>
+                    <h3>Our Vision</h3>
+                    <p>To be the most trusted platform connecting patients and licensed medical professionals globally, ensuring better health outcomes.</p>
+                </div>
+                <div class="mission-card">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-heart"></i>
+                    </div>
+                    <h3>Our Values</h3>
+                    <p>Integrity, Compassion, Innovation, and Reliability guide every interaction we have with our patients and doctors.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="content-container">
+            <div class="section-header">
+                <h2>Why Choose TeleMed?</h2>
+                <p>Experience healthcare reimagined with our comprehensive digital health platform</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon-box">
+                        <i class="bi bi-person-video3"></i>
+                    </div>
+                    <h4>Video Consultation</h4>
+                    <p>Connect with certified doctors online from the comfort of your home with HD video quality.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-box">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4>Verified Doctors</h4>
+                    <p>All our healthcare professionals are thoroughly verified and licensed for your safety.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-box">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <h4>Affordable Care</h4>
+                    <p>High-quality medical consultations that are easy on your wallet without compromising care.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="content-container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h4>500+</h4>
+                    <p>Expert Doctors</p>
+                </div>
+                <div class="stat-item">
+                    <h4>10k+</h4>
+                    <p>Consultations</p>
+                </div>
+                <div class="stat-item">
+                    <h4>98%</h4>
+                    <p>Patient Satisfaction</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section class="team-section">
+        <div class="content-container">
+            <div class="section-header">
+                <h2>Meet Our Team</h2>
+                <p>Expert healthcare professionals dedicated to your wellbeing</p>
+            </div>
+            <div class="team-grid">
+                <div class="team-card">
+                    <div class="image-wrapper">
+                        <img src="~/images/team1.png" alt="Dr. Zahidul Islam">
+                    </div>
+                    <h5>Dr. Zahidul Islam</h5>
+                    <p>Dermatology / Skin & STD diseases</p>
+                </div>
+                <div class="team-card">
+                    <div class="image-wrapper">
+                        <img src="~/images/team2.png" alt="Dr. Sayeef Hossain Khan">
+                    </div>
+                    <h5>Dr. Sayeef Hossain Khan</h5>
+                    <p>Internal Medicine / Multi-system specialist</p>
+                </div>
+                <div class="team-card">
+                    <div class="image-wrapper">
+                        <img src="~/images/team3.png" alt="Dr. Md. Moazzem Hossain">
+                    </div>
+                    <h5>Dr. Md. Moazzem Hossain</h5>
+                    <p>Diabetes Specialist</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>

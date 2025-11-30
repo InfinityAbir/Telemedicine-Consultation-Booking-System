@@ -1,0 +1,281 @@
+﻿@{
+    ViewData["Title"] = "Admin Reports - TeleMed";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #f0f8ff, #ffffff);
+    }
+
+    .dashboard-container {
+        padding: 40px 20px;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .card {
+        border: none;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        }
+
+    .summary-card {
+        text-align: center;
+        padding: 25px;
+        color: #333;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .summary-card .summary-icon {
+            font-size: 2.3rem;
+            color: #007bff;
+            margin-bottom: 8px;
+            animation: floatIcon 2s ease-in-out infinite;
+        }
+
+    @@keyframes floatIcon {
+        0%,100%
+
+    {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+
+    }
+
+    .chart-container {
+        height: 300px;
+        width: 100%;
+    }
+
+    .btn-export {
+        margin-right: 10px;
+        border-radius: 10px;
+        transition: 0.3s;
+    }
+
+        .btn-export:hover {
+            transform: scale(1.05);
+        }
+
+    .table-container {
+        margin-top: 40px;
+    }
+
+    .table thead {
+        background: #007bff;
+        color: white;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f1f7ff;
+    }
+</style>
+
+<div class="dashboard-container container fade-in">
+    <h2 class="mb-4 text-center fw-bold text-primary">
+        <i class="bi bi-graph-up-arrow"></i> TeleMed Admin Dashboard
+    </h2>
+
+    <!-- Export Buttons -->
+    <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-outline-primary btn-export" id="exportPDF">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+        </button>
+        <button class="btn btn-outline-success btn-export" id="exportCSV">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-people"></i></div>
+                <h6>Total Users</h6>
+                <h3 id="userCount">@ViewBag.TotalUsers</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-person-badge"></i></div>
+                <h6>Total Doctors</h6>
+                <h3 id="doctorCount">@ViewBag.TotalDoctors</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-calendar-check"></i></div>
+                <h6>Total Appointments</h6>
+                <h3 id="appointmentCount">@ViewBag.TotalAppointments</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-clock-history"></i></div>
+                <h6>Completed Appointments</h6>
+                <h3 id="completedCount">@ViewBag.CompletedAppointments</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mt-4 g-4">
+        <div class="col-lg-6">
+            <div class="card p-4">
+                <h5 class="fw-semibold text-primary"><i class="bi bi-bar-chart-line"></i> Appointments Overview</h5>
+                <div class="chart-container mt-3">
+                    <canvas id="appointmentsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-4">
+                <h5 class="fw-semibold text-primary"><i class="bi bi-pie-chart"></i> Role Distribution</h5>
+                <div class="chart-container mt-3">
+                    <canvas id="rolesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="table-container">
+        <div class="card p-4 mt-4">
+            <h5 class="fw-semibold text-primary"><i class="bi bi-clock"></i> Recent Activities</h5>
+            <div id="reportTable">
+                <table class="table table-hover align-middle mt-3">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Activity</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (ViewBag.RecentActivities != null && ((List<dynamic>)ViewBag.RecentActivities).Count > 0)
+                        {
+                            foreach (var activity in (List<dynamic>)ViewBag.RecentActivities)
+                            {
+                                <tr>
+                                    <td>@activity.UserName</td>
+                                    <td>@activity.Action</td>
+                                    <td>@activity.Date.ToString("dd MMM yyyy hh:mm tt")</td>
+                                    <td><span class="badge bg-@(activity.Status == "Success" ? "success" : "danger")">@activity.Status</span></td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="4" class="text-center text-muted">No recent activity data available.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Use strongly typed ViewBag arrays
+        const appointmentMonths = @Html.Raw(Json.Serialize(ViewBag.AppointmentMonths ?? new string[] { }));
+        const appointmentCounts = @Html.Raw(Json.Serialize(ViewBag.AppointmentCounts ?? new int[] { }));
+        const roleDistribution = @Html.Raw(Json.Serialize(ViewBag.RoleDistribution ?? new int[] { 0, 0, 0 }));
+
+        // Appointments Chart
+        const appointmentsChart = new Chart(document.getElementById('appointmentsChart'), {
+            type: 'line',
+            data: {
+                labels: appointmentMonths,
+                datasets: [{
+                    label: 'Appointments',
+                    data: appointmentCounts,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0,123,255,0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#007bff'
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 1200 },
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Role Distribution Chart
+        const rolesChart = new Chart(document.getElementById('rolesChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Admin','Doctor','Patient'],
+                datasets: [{
+                    data: roleDistribution,
+                    backgroundColor: ['#007bff','#28a745','#ffc107'],
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 1500 },
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Export PDF
+        document.getElementById("exportPDF").addEventListener("click", () => {
+            const report = document.getElementById("reportTable");
+            html2pdf().set({
+                margin: 0.5,
+                filename: 'TeleMed_Admin_Report.pdf',
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            }).from(report).save();
+        });
+
+        // Export CSV
+        document.getElementById("exportCSV").addEventListener("click", () => {
+            const table = document.querySelector("table");
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Report" });
+            XLSX.writeFile(wb, "TeleMed_Admin_Report.csv");
+        });
+    </script>
+}

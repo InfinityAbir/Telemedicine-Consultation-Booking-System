@@ -1,0 +1,126 @@
+﻿@model IEnumerable<Telemed.Models.Doctor>
+
+@{
+    ViewData["Title"] = "Pending Doctor Approvals";
+}
+
+<style>
+    .page-title {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: #343a40;
+    }
+
+    .doctor-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 15px;
+    }
+
+        .doctor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+    .btn-approve {
+        transition: transform 0.2s ease;
+    }
+
+        .btn-approve:hover {
+            transform: scale(1.05);
+        }
+
+    .btn-reject {
+        transition: transform 0.2s ease;
+    }
+
+        .btn-reject:hover {
+            transform: scale(1.05);
+        }
+
+    .no-doctors {
+        font-style: italic;
+        color: #6c757d;
+    }
+
+    .action-buttons > form {
+        display: inline-block;
+        margin-right: 8px;
+    }
+
+    .table thead th {
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table tbody tr {
+        transition: background 0.2s ease;
+    }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+</style>
+
+<div class="container my-5">
+    <h2 class="page-title mb-4">Pending Doctor Approvals</h2>
+
+    <!-- Alert messages -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <p class="no-doctors">No pending doctors at the moment.</p>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var doctor in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card doctor-card shadow-sm p-3">
+                        <div class="card-body">
+                            <h5 class="card-title mb-2"><strong>Name:</strong> @doctor.FullName</h5>
+
+                            <p class="text-muted mb-1">
+                                <strong>Specialization:</strong> @doctor.Specialization
+                            </p>
+
+                            <p class="text-muted mb-1">
+                                <strong>Qualification:</strong> @doctor.Qualification
+                            </p>
+
+                            <p class="text-muted mb-1">
+                                <strong>BM&DC Number:</strong> @doctor.BMDCNumber
+                            </p>
+
+                            <p class="text-muted mb-3">
+                                <strong>Email:</strong> <i class="bi bi-envelope"></i> @doctor.User?.Email
+                            </p>
+
+                            <div class="action-buttons">
+                                <form asp-action="ApproveDoctor" asp-route-id="@doctor.DoctorId" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-success btn-sm btn-approve">
+                                        <i class="bi bi-check-circle"></i> Approve
+                                    </button>
+                                </form>
+
+                                <form asp-action="RejectDoctor" asp-route-id="@doctor.DoctorId" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-danger btn-sm btn-reject">
+                                        <i class="bi bi-x-circle"></i> Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

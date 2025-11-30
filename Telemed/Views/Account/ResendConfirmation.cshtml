@@ -1,0 +1,295 @@
+﻿@model Telemed.ViewModels.ResendConfirmationViewModel
+@{
+    ViewData["Title"] = "Resend confirmation - TeleMed";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Page layout */
+    .resend-page {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 16px;
+        background: linear-gradient(180deg, #f6fbff 0%, #eef6ff 100%);
+        overflow: hidden;
+    }
+
+    /* Subtle floating background blob */
+    .bg-blob {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle at 30% 30%, rgba(0,123,255,0.12), transparent 30%), radial-gradient(circle at 70% 70%, rgba(0,123,255,0.08), transparent 30%);
+        border-radius: 40%;
+        filter: blur(40px);
+        transform: translate(-20%, -30%) rotate(-10deg);
+        opacity: 0.9;
+        pointer-events: none;
+        z-index: 0;
+        animation: blobFloat 10s ease-in-out infinite;
+    }
+
+    @@keyframes blobFloat {
+        0%
+
+    {
+        transform: translate(-18%, -30%) rotate(-8deg) scale(1);
+    }
+
+    50% {
+        transform: translate(-22%, -32%) rotate(6deg) scale(1.03);
+    }
+
+    100% {
+        transform: translate(-18%, -30%) rotate(-8deg) scale(1);
+    }
+
+    }
+
+    /* Card */
+    .resend-card {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 520px;
+        border-radius: 18px;
+        padding: 28px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(250,250,255,0.82));
+        box-shadow: 0 12px 35px rgba(13, 42, 79, 0.08);
+        backdrop-filter: blur(6px);
+        transform: translateY(18px);
+        opacity: 0;
+        animation: cardEnter 520ms cubic-bezier(.2,.9,.3,1) forwards;
+        border: 1px solid rgba(0, 123, 255, 0.06);
+    }
+
+    @@keyframes cardEnter {
+        to
+
+    {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    }
+
+    .resend-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .brand-mark {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        background: linear-gradient(135deg,#007bff,#0062d6);
+        box-shadow: 0 6px 18px rgba(3, 59, 133, 0.12);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    .resend-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #08324a;
+    }
+
+    .resend-sub {
+        margin: 0;
+        margin-top: 6px;
+        color: #45607a;
+        font-size: 0.95rem;
+    }
+
+    /* Floating label input */
+    .form-floating-custom {
+        position: relative;
+        margin-top: 18px;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 14px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(8,50,74,0.08);
+        background: rgba(255,255,255,0.9);
+        font-size: 1rem;
+        outline: none;
+        transition: box-shadow .18s ease, border-color .18s ease, transform .12s ease;
+        box-shadow: none;
+    }
+
+        .form-input:focus {
+            box-shadow: 0 6px 18px rgba(0,123,255,0.08);
+            border-color: #007bff;
+            transform: translateY(-2px);
+        }
+
+    label.floating {
+        position: absolute;
+        left: 14px;
+        top: 14px;
+        font-size: 0.92rem;
+        color: #7b95a8;
+        transition: all 160ms ease;
+        pointer-events: none;
+    }
+
+    .form-input:not(:placeholder-shown) + label.floating,
+    .form-input:focus + label.floating {
+        top: -8px;
+        left: 12px;
+        font-size: 0.72rem;
+        background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.9));
+        padding: 0 6px;
+        color: #065a9a;
+        border-radius: 6px;
+    }
+
+    /* Button */
+    .btn-modern {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 14px;
+        margin-top: 18px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 700;
+        cursor: pointer;
+        background: linear-gradient(90deg,#007bff,#0062d6);
+        color: white;
+        box-shadow: 0 10px 24px rgba(3,59,133,0.12);
+        transition: transform .14s ease, box-shadow .14s ease, opacity .12s ease;
+    }
+
+        .btn-modern:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 30px rgba(3,59,133,0.14);
+        }
+
+        .btn-modern:active {
+            transform: translateY(-1px);
+        }
+
+    .btn-spinner {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.28);
+        border-top-color: rgba(255,255,255,0.96);
+        animation: spin 700ms linear infinite;
+    }
+
+    @@keyframes spin {
+        to
+
+    {
+        transform: rotate(360deg);
+    }
+
+    }
+
+    .small-link {
+        display: block;
+        margin-top: 12px;
+        text-align: center;
+        font-size: 0.92rem;
+        color: #2567a9;
+    }
+
+    /* responsiveness */
+    @@media (max-width: 576px) {
+        .resend-card
+
+    {
+        padding: 20px;
+        border-radius: 14px;
+    }
+
+    }
+</style>
+
+<div class="resend-page">
+    <div class="bg-blob" aria-hidden="true"></div>
+
+    <div class="resend-card shadow-sm" role="region" aria-labelledby="resendHeading">
+        <div class="resend-header">
+            <div class="brand-mark">T</div>
+            <div>
+                <h2 id="resendHeading" class="resend-title">Resend confirmation</h2>
+                <p class="resend-sub">Enter the email you registered with and we'll send a new confirmation link.</p>
+            </div>
+        </div>
+
+        @* show any controller messages *@
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-info mt-3">@TempData["Message"]</div>
+        }
+
+        <div asp-validation-summary="All" class="text-danger mt-1 mb-2"></div>
+
+        <form asp-action="ResendConfirmation" method="post" id="resendForm" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="form-floating-custom">
+                <input asp-for="Email" class="form-input" placeholder=" " />
+                <label for="Email" class="floating">Email address</label>
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn-modern" id="submitBtn" aria-live="polite">
+                <span id="btnContent">Resend confirmation</span>
+                <span id="btnSpinner" style="display:none;margin-left:6px;" aria-hidden="true">
+                    <span class="btn-spinner"></span>
+                </span>
+            </button>
+
+            <a class="small-link" href="@Url.Action("Login", "Account")">Back to login</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const form = document.getElementById('resendForm');
+            const btn = document.getElementById('submitBtn');
+            const spinner = document.getElementById('btnSpinner');
+            const btnContent = document.getElementById('btnContent');
+            const emailInput = document.getElementById('Email');
+
+            // Autofocus on mobile-friendly pattern
+            setTimeout(() => { emailInput?.focus(); }, 400);
+
+            form.addEventListener('submit', (e) => {
+                // simple client-side required check to avoid quick empty posts
+                if (!emailInput.value || emailInput.value.trim().length === 0) {
+                    // let validation summary show
+                    return;
+                }
+
+                // show loading state
+                btn.disabled = true;
+                spinner.style.display = 'inline-block';
+                btnContent.textContent = 'Sending...';
+            });
+
+            // small UX: animated floating label if user pastes (CSS handles visual)
+            emailInput.addEventListener('input', () => { /* noop */ });
+        })();
+    </script>
+}

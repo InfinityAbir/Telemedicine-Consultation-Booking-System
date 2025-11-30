@@ -1,0 +1,548 @@
+﻿@model IEnumerable<Telemed.Models.Payment>
+
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Admin — Payments";
+    Func<decimal, string> fmt = amt => string.Format(System.Globalization.CultureInfo.GetCultureInfo("en-US"), "{0:0.00}", amt);
+    var renderedCount = Model?.Count() ?? 0;
+}
+
+<!-- Fonts & Bootstrap -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --bg: #f4f7fb;
+        --card: rgba(255,255,255,0.85);
+        --muted: #6b7280;
+        --accent: #0066ff;
+        --success: #16a34a;
+        --warning: #f59e0b;
+        --glass-shadow: 0 8px 30px rgba(15,23,42,0.06);
+        --radius-lg: 14px;
+    }
+
+    html, body {
+        height: 100%;
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        background: linear-gradient(180deg, var(--bg) 0%, #eef4ff 100%);
+        color: #111827;
+    }
+
+    .container-xxl {
+        padding-top: 3rem;
+        padding-bottom: 4rem;
+    }
+
+    /* Header */
+    .page-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.2rem;
+    }
+
+        .page-head h2 {
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+    .page-sub {
+        color: var(--muted);
+        font-size: .95rem;
+    }
+
+    /* Controls card */
+    .controls-card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(245,249,255,0.6));
+        border-radius: var(--radius-lg);
+        padding: 14px;
+        box-shadow: var(--glass-shadow);
+        border: 1px solid rgba(100,116,139,0.06);
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+        .controls-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 36px rgba(15,23,42,0.08);
+        }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        height: 44px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #1466ff, #0ea5ff);
+        border: none;
+        box-shadow: 0 6px 18px rgba(14,165,255,0.16);
+        border-radius: 10px;
+        height: 44px;
+    }
+
+    .btn-outline-primary {
+        border-radius: 10px;
+        height: 44px;
+    }
+
+    /* Cards & Table */
+    .card-modern {
+        background: var(--card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--glass-shadow);
+        border: none;
+        overflow: hidden;
+    }
+
+    .table-modern thead th {
+        border-bottom: none;
+        background: transparent;
+        color: #374151;
+        font-weight: 600;
+        padding: 1rem 1.25rem;
+    }
+
+    .table-modern tbody td {
+        vertical-align: middle;
+        padding: .95rem 1.25rem;
+    }
+
+    .row-anim {
+        opacity: 0;
+        transform: translateY(6px);
+        transition: opacity .32s ease, transform .32s ease;
+    }
+
+        .row-anim.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+    tr.table-row:hover {
+        background: linear-gradient(90deg, rgba(14,165,255,0.03), rgba(14,165,255,0.01));
+        transform: translateY(-3px);
+        transition: transform .14s ease, background .14s ease;
+    }
+
+    /* Badges */
+    .badge-paid {
+        background: linear-gradient(90deg,#34d399,#10b981);
+        color: white;
+        border-radius: 8px;
+        padding: .45em .6em;
+        font-weight: 600;
+        box-shadow: 0 4px 10px rgba(16,185,129,0.12);
+    }
+
+    .badge-pending {
+        background: linear-gradient(90deg,#fcd34d,#f59e0b);
+        color: #1f2937;
+        border-radius: 8px;
+        padding: .45em .6em;
+        font-weight: 600;
+    }
+
+    /* Mobile card */
+    .mobile-card {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+        .mobile-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 48px rgba(15,23,42,0.08);
+        }
+
+    /* Animated counter */
+    .count {
+        font-weight: 700;
+        font-size: 1.05rem;
+    }
+
+    /* Utilities */
+    .muted-sm {
+        color: var(--muted);
+        font-size: .9rem;
+    }
+
+    /* Small animation for skeleton on refresh */
+    .skeleton {
+        animation: pulse 1.4s infinite;
+        background: linear-gradient(90deg, #f4f7fb, #eef4ff, #f4f7fb);
+        background-size: 200% 100%;
+    }
+    @@keyframes pulse {
+        0%
+
+    {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+
+    }
+
+    /* Responsive spacing adjustments */
+    @@media (max-width: 767.98px) {
+        .page-head
+
+    {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .6rem;
+    }
+
+    .controls-card {
+        padding: 12px;
+    }
+
+    }
+</style>
+
+<div class="container-xxl">
+    <div class="page-head">
+        <div>
+            <h2>Payments</h2>
+            <div class="page-sub">Admin panel — all transactions</div>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+            <a asp-controller="Payments" asp-action="ExportCsv" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+            <button id="refreshBtn" class="btn btn-primary d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="controls-card mb-4 card-modern">
+        <div class="row gx-2 gy-2 align-items-center">
+            <div class="col-lg-4 col-md-6">
+                <input id="q" type="search" class="form-control" placeholder="Search: appointment #" />
+            </div>
+
+            <div class="col-auto">
+                <select id="statusFilter" class="form-select">
+                    <option value="all">All statuses</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                </select>
+            </div>
+
+            <div class="col-auto">
+                <input id="fromDate" type="date" class="form-control" />
+            </div>
+            <div class="col-auto">
+                <input id="toDate" type="date" class="form-control" />
+            </div>
+
+            <div class="col-auto">
+                <button id="applyFilters" type="button" class="btn btn-outline-primary">Apply</button>
+            </div>
+
+            <div class="col text-end">
+                <div class="muted-sm">Total</div>
+                <div class="count" id="totalCount">@renderedCount</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentsContainer">
+
+        <!-- Desktop Table -->
+        <div class="card card-modern mb-4 d-none d-md-block">
+            <div class="table-responsive">
+                <table class="table table-hover table-modern align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:60px;">#</th>
+                            <th>Appointment</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Payment Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentsTableBody">
+                        @if (Model != null && Model.Any())
+                        {
+                            var idx = 1;
+                            foreach (var p in Model)
+                            {
+                                var doctorName = p.Appointment?.Doctor?.User?.FullName ?? "-";
+
+                                <tr class="table-row row-anim" data-status="@p.Status.ToString()"
+                                    data-date="@(p.PaymentDate.HasValue? p.PaymentDate.Value.ToString("yyyy-MM-dd") : "")"
+                                    data-appointment="@p.AppointmentId"
+                                    data-doctor="@doctorName"
+                                    data-id="@p.PaymentId">
+
+                                    <td class="ps-4">@idx</td>
+
+                                    <td>
+                                        <div class="fw-semibold">Appointment #@p.AppointmentId</div>
+                                        <div class="small muted-sm">@doctorName</div>
+                                    </td>
+
+                                    <td class="fw-semibold">৳@fmt(p.Amount)</td>
+
+                                    <td>
+                                        @if (p.Status == Telemed.Models.PaymentStatus.Paid)
+                                        {
+                                            <span class="badge-paid">Paid</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-pending">Pending</span>
+                                        }
+                                    </td>
+
+                                    <td class="muted-sm">@(p.PaymentDate?.ToString("dd MMM yyyy HH:mm") ?? "-")</td>
+                                </tr>
+
+                                idx++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center small text-muted">No payments found</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="row g-4 d-md-none" id="paymentsCardGrid">
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    var doctorName = item.Appointment?.Doctor?.User?.FullName ?? "-";
+
+                    <div class="col-12">
+                        <div class="card mobile-card card-modern">
+                            <div class="card-body d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="fw-semibold">Appointment #@item.AppointmentId</div>
+                                    <div class="small muted-sm">@doctorName</div>
+                                    <div class="mt-2">
+                                        @if (item.Status == Telemed.Models.PaymentStatus.Paid)
+                                        {
+                                            <span class="badge-paid">Paid</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-pending">Pending</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <div class="fw-semibold">৳@fmt(item.Amount)</div>
+                                    <div class="small muted-sm">@(item.PaymentDate?.ToString("dd MMM yy") ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    (function () {
+        // elements
+        const qInput = document.getElementById('q');
+        const statusFilter = document.getElementById('statusFilter');
+        const fromDate = document.getElementById('fromDate');
+        const toDate = document.getElementById('toDate');
+        const applyBtn = document.getElementById('applyFilters');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const totalCountEl = document.getElementById('totalCount');
+
+        // helper: debounce
+        function debounce(fn, wait = 240){
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn.apply(this, args), wait);
+            };
+        }
+
+        // animate numeric change
+        function animateCount(el, from, to, duration = 500){
+            const start = performance.now();
+            const diff = to - from;
+            if (diff === 0) return;
+            function tick(now){
+                const t = Math.min(1, (now - start)/duration);
+                const val = Math.round(from + diff * easeOutCubic(t));
+                el.innerText = val;
+                if (t < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+            function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
+        }
+
+        // reveal rows with small stagger
+        function revealRows(container){
+            const rows = Array.from(container.querySelectorAll('.row-anim'));
+            rows.forEach((r,i)=> {
+                setTimeout(()=> r.classList.add('visible'), i*30);
+            });
+        }
+
+        // initial reveal
+        document.addEventListener('DOMContentLoaded', () => {
+            revealRows(document);
+        });
+
+        // filter logic (desktop table)
+        function applyFilters() {
+            const q = (qInput.value || '').toLowerCase().trim();
+            const status = statusFilter.value;
+            const from = fromDate.value;
+            const to = toDate.value;
+
+            let shown = 0;
+
+            const rows = Array.from(document.querySelectorAll('#paymentsTableBody tr'));
+            rows.forEach(row => {
+                const ds = row.dataset || {};
+                // keep non-data rows (e.g. no data-id) hidden
+                if (!row.dataset.id) return row.style.display = 'none';
+
+                const appointment = (ds.appointment || '').toLowerCase();
+                const doctor = (ds.doctor || '').toLowerCase();
+                const rowStatus = (ds.status || '').toLowerCase();
+                const date = ds.date || '';
+
+                let visible = true;
+
+                if (q && !(appointment.includes(q) || doctor.includes(q))) visible = false;
+                if (status !== 'all' && rowStatus !== status.toLowerCase()) visible = false;
+                if (from && date < from) visible = false;
+                if (to && date > to) visible = false;
+
+                // animate hide/show
+                if (visible) {
+                    row.style.display = '';
+                    // small reflow then class add for motion
+                    requestAnimationFrame(()=> row.classList.add('visible'));
+                    shown++;
+                } else {
+                    row.classList.remove('visible');
+                    setTimeout(()=> row.style.display = 'none', 220);
+                }
+            });
+
+            const previous = parseInt(totalCountEl.innerText || 0, 10);
+            animateCount(totalCountEl, previous, shown);
+        }
+
+        // Mobile grid filtering (simple: hide cards)
+        function applyFiltersMobile(){
+            const q = (qInput.value || '').toLowerCase().trim();
+            const status = statusFilter.value;
+            const from = fromDate.value;
+            const to = toDate.value;
+
+            let shown = 0;
+            const cards = Array.from(document.querySelectorAll('#paymentsCardGrid .col-12'));
+            cards.forEach(col => {
+                const card = col.querySelector('.card') || {};
+                const appointment = (card.dataset?.appointment || '').toLowerCase();
+                const doctor = (card.dataset?.doctor || '').toLowerCase();
+                const rowStatus = (card.dataset?.status || '').toLowerCase();
+                const date = card.dataset?.date || '';
+
+                let visible = true;
+                if (q && !(appointment.includes(q) || doctor.includes(q))) visible = false;
+                if (status !== 'all' && rowStatus !== status.toLowerCase()) visible = false;
+                if (from && date < from) visible = false;
+                if (to && date > to) visible = false;
+
+                if (visible){
+                    col.style.display = '';
+                    shown++;
+                } else {
+                    col.style.display = 'none';
+                }
+            });
+
+            const previous = parseInt(totalCountEl.innerText || 0, 10);
+            animateCount(totalCountEl, previous, shown);
+        }
+
+        // unified filter handler
+        const runFilters = debounce(() => {
+            applyFilters();
+            applyFiltersMobile();
+        }, 180);
+
+        applyBtn.addEventListener('click', runFilters);
+        qInput.addEventListener('input', runFilters);
+        statusFilter.addEventListener('change', runFilters);
+        fromDate.addEventListener('change', runFilters);
+        toDate.addEventListener('change', runFilters);
+
+        // Enter key triggers filter
+        qInput.addEventListener('keyup', e => {
+            if (e.key === 'Enter') runFilters();
+        });
+
+        // refresh
+        refreshBtn.addEventListener('click', () => {
+            // small UX: skeleton effect then reload
+            const container = document.getElementById('paymentsContainer');
+            container.classList.add('skeleton');
+            setTimeout(()=> location.reload(), 450);
+        });
+
+        // attach dataset to mobile cards so mobile filters can read them (we used server data for table rows)
+        (function syncMobileCardData(){
+            // for each mobile card, try to find matching payment row by appointment id and copy dataset
+            const tableRows = document.querySelectorAll('#paymentsTableBody tr[data-id]');
+            const mobileCards = document.querySelectorAll('#paymentsCardGrid .card');
+            const tableMap = {};
+            tableRows.forEach(r=> { tableMap[r.dataset.appointment] = r.dataset; });
+
+            mobileCards.forEach(c => {
+                const txt = c.textContent || '';
+                // naive: parse appointment number from first line if present (server-side we could attach data attributes).
+                // But we'll try to match by appointment number rendered inside card's text
+                const apptMatch = txt.match(/Appointment\s*#?(\d+)/i);
+                if (apptMatch){
+                    const appt = apptMatch[1];
+                    if (tableMap[appt]){
+                        c.dataset.appointment = tableMap[appt].appointment || '';
+                        c.dataset.doctor = tableMap[appt].doctor || '';
+                        c.dataset.status = tableMap[appt].status || '';
+                        c.dataset.date = tableMap[appt].date || '';
+                    }
+                }
+            });
+        })();
+
+        // small enhancement: animate initial reveal after short delay
+        setTimeout(()=> {
+            const rows = document.querySelectorAll('.row-anim');
+            rows.forEach((r, i) => setTimeout(()=> r.classList.add('visible'), i * 25));
+        }, 150);
+
+    })();
+</script>

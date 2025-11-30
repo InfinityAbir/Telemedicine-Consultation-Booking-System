@@ -1,0 +1,340 @@
+﻿@model IEnumerable<Telemed.ViewModels.AppointmentWithFeedbackStatus>
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    ViewData["Title"] = "My Appointments";
+}
+
+<div class="container py-5">
+
+    @* Alerts *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <h2 class="text-center mb-5 fw-bold">My Appointments</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center shadow-sm rounded-4">
+            No appointments found.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var itemWrapper in Model)
+            {
+                var item = itemWrapper.Appointment;
+                <div class="col-md-6 col-lg-4">
+                    <div class="card appointment-card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-body d-flex flex-column">
+
+                            @* Doctor Info *@
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="@(item.Doctor?.User?.ProfileImageUrl ?? "/images/default-user.png")"
+                                     alt="Doctor Photo"
+                                     class="rounded-circle me-3 border border-primary"
+                                     style="width:60px; height:60px; object-fit:cover;">
+                                <div>
+                                    <h5 class="mb-0 fw-bold">@item.Doctor?.User?.FullName</h5>
+                                    <small class="text-muted">@item.Doctor?.Specialization</small>
+                                </div>
+                            </div>
+
+                            @* Appointment Details *@
+                            <div class="mb-3 flex-grow-1">
+                                <p class="mb-1"><strong>Patient:</strong> @item.Patient?.User?.FullName</p>
+                                <p class="mb-1"><strong>Date:</strong> @item.ScheduledAt.ToString("MMMM dd, yyyy hh:mm tt")</p>
+                                <span class="badge bg-@(item.Status switch
+                                      {
+                                          Telemed.Models.AppointmentStatus.PendingPayment => "warning",
+                                          Telemed.Models.AppointmentStatus.Approved => "primary",
+                                          Telemed.Models.AppointmentStatus.Completed => "success",
+                                          Telemed.Models.AppointmentStatus.Rejected => "danger",
+                                          _ => "secondary"
+                                      }) fs-6">@item.Status</span>
+
+                        @if (!string.IsNullOrEmpty(item.PatientNote))
+                                {
+                                    <p class="mt-2 text-muted small"><strong>Note:</strong> @item.PatientNote</p>
+                                }
+                            </div>
+
+                            @* Action Buttons (View / Feedback / Admin / Video) *@
+                            <div class="mt-3 d-flex flex-wrap gap-2">
+                                <a asp-action="Details" asp-route-id="@item.AppointmentId" class="btn btn-outline-primary btn-sm flex-grow-1">View</a>
+
+                                @* Video link area: uses Schedule.VideoCallLink and itemWrapper.IsPaid *@
+                                @{
+                                    var schedule = item.Schedule;
+                                    var scheduleLink = schedule?.VideoCallLink;
+                                    var hasVideoLink = !string.IsNullOrWhiteSpace(scheduleLink);
+                                    var isPaid = itemWrapper.IsPaid;
+
+                                    // Compute slot duration server-side (UTC-safe). Fallbacks included.
+                                    TimeSpan slotDuration;
+                                    if (schedule != null && schedule.EndTime > schedule.StartTime && schedule.MaxPatientsPerDay > 0)
+                                    {
+                                        var totalMinutes = (schedule.EndTime - schedule.StartTime).TotalMinutes;
+                                        slotDuration = TimeSpan.FromMinutes(Math.Max(5, totalMinutes / schedule.MaxPatientsPerDay));
+                                    }
+                                    else
+                                    {
+                                        // Attempt to derive from schedule if only one exists for doctor on that date
+                                        if (schedule == null)
+                                        {
+                                            // leave slotDuration to default; don't call DB here to keep view lightweight
+                                            slotDuration = TimeSpan.FromMinutes(30);
+                                        }
+                                        else
+                                        {
+                                            slotDuration = TimeSpan.FromMinutes(30);
+                                        }
+                                    }
+
+                                    var nowUtc = DateTime.UtcNow;
+                                    var scheduledUtc = item.ScheduledAt.ToUniversalTime();
+                                    var enableAt = scheduledUtc.AddMinutes(-5); // allow join 5 minutes before
+                                    var endAt = scheduledUtc.Add(slotDuration);
+                                    var serverEnable = isPaid && hasVideoLink && nowUtc >= enableAt && nowUtc <= endAt;
+                                }
+
+                                @if (hasVideoLink)
+                                {
+                                    if (serverEnable)
+                                    {
+                                        // Server already says it's allowed right now
+                                        <a asp-action="JoinVideo" asp-route-appointmentId="@item.AppointmentId"
+                                           class="btn btn-primary btn-sm flex-grow-1" target="_blank" rel="noopener">Join Video Call</a>
+                                    }
+                                    else
+                                    {
+                                        // Disabled UX button that will be toggled by JS when the time arrives,
+                                        // and will switch to "Consultation ended" after endAt passes.
+                                        <button class="btn btn-secondary btn-sm flex-grow-1 video-join-btn"
+                                                disabled
+                                                data-enable-at="@enableAt.ToString("o")"
+                                                data-end-at="@endAt.ToString("o")"
+                                                data-appointment-id="@item.AppointmentId"
+                                                data-paid="@(isPaid.ToString().ToLower())">
+                                            @{
+                                                if (!isPaid)
+                                                {
+                                                    <text>Waiting for payment</text>
+                                                }
+                                                else if (DateTime.UtcNow.ToUniversalTime() > endAt)
+                                                {
+                                                    <text>Consultation ended</text>
+                                                }
+                                                else
+                                                {
+                                                    <text>Video link will enable 5m before</text>
+                                                }
+                                            }
+                                        </button>
+                                    }
+                                }
+                                else
+                                {
+                                    // No video link added by doctor yet
+                                    <button class="btn btn-outline-secondary btn-sm flex-grow-1" disabled>Video link not provided</button>
+                                }
+
+                                @* Feedback buttons *@
+                                @if (item.Status == Telemed.Models.AppointmentStatus.Completed)
+                                {
+                                    @if (itemWrapper.HasFeedback)
+                                    {
+                                        <button class="btn btn-success btn-sm flex-grow-1" disabled>Feedback Given</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-success btn-sm flex-grow-1" data-bs-toggle="modal" data-bs-target="#feedbackModal-@item.AppointmentId">
+                                            Give Feedback
+                                        </button>
+                                    }
+                                }
+
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.AppointmentId" class="btn btn-outline-secondary btn-sm flex-grow-1">Edit</a>
+                                    <a asp-action="Delete" asp-route-id="@item.AppointmentId" class="btn btn-outline-danger btn-sm flex-grow-1">Delete</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* Feedback Modal *@
+                <div class="modal fade" id="feedbackModal-@item.AppointmentId" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 shadow-sm">
+                            <form asp-action="Create" asp-controller="Feedback" method="post">
+                                <div class="modal-header border-0">
+                                    <h5 class="modal-title fw-bold">Feedback for @item.Doctor?.User?.FullName</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" name="AppointmentId" value="@item.AppointmentId" />
+                                    <input type="hidden" name="DoctorId" value="@item.DoctorId" />
+                                    <input type="hidden" name="PatientId" value="@item.PatientId" />
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Rating</label>
+                                        <div class="star-rating d-flex justify-content-end">
+                                            <input type="radio" name="Rating" value="0" checked hidden />
+                                            @for (int i = 5; i >= 1; i--)
+                                            {
+                                                <input type="radio" id="star-@i-@item.AppointmentId" name="Rating" value="@i" required />
+                                                <label for="star-@i-@item.AppointmentId" title="@i stars">&#9733;</label>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Comment</label>
+                                        <textarea name="Comment" class="form-control" placeholder="Write your feedback (optional)" maxlength="500"></textarea>
+                                    </div>
+
+                                    @if (TempData["Error"] != null)
+                                    {
+                                        <div class="alert alert-danger">@TempData["Error"]</div>
+                                    }
+                                </div>
+                                <div class="modal-footer border-0 d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-success rounded-3 px-4">Submit</button>
+                                    <button type="button" class="btn btn-secondary rounded-3 px-4" data-bs-dismiss="modal">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .appointment-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+    }
+
+        .appointment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+        }
+
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 5px;
+    }
+
+        .star-rating input[type="radio"] {
+            display: none;
+        }
+
+        .star-rating label {
+            font-size: 1.8rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+            .star-rating input[type="radio"]:checked ~ label,
+            .star-rating label:hover,
+            .star-rating label:hover ~ label {
+                color: #ffc107;
+            }
+</style>
+
+@* Client-side UX: enable the Join button when time arrives. Server still enforces access. *@
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.video-join-btn').forEach(function (btn) {
+            const enableAtIso = btn.getAttribute('data-enable-at');
+            const endAtIso = btn.getAttribute('data-end-at');
+            const isPaid = btn.getAttribute('data-paid') === 'true';
+            const appointmentId = btn.getAttribute('data-appointment-id');
+
+            if (!enableAtIso || !endAtIso || !appointmentId) return;
+
+            const enableAt = new Date(enableAtIso);
+            const endAt = new Date(endAtIso);
+
+            function update() {
+                const now = new Date();
+
+                // If appointment already ended: keep disabled and show ended message
+                if (now >= endAt) {
+                    btn.disabled = true;
+                    btn.classList.remove('btn-primary');
+                    btn.classList.remove('btn-secondary');
+                    btn.classList.add('btn-outline-secondary');
+                    btn.textContent = 'Consultation ended';
+                    return;
+                }
+
+                // Not ended yet
+                if (!isPaid) {
+                    btn.disabled = true;
+                    btn.classList.remove('btn-primary');
+                    btn.classList.remove('btn-secondary');
+                    btn.classList.add('btn-secondary');
+                    btn.textContent = 'Waiting for payment';
+                    return;
+                }
+
+                if (now >= enableAt) {
+                    // enable button and attach join action once
+                    if (btn.disabled) {
+                        btn.disabled = false;
+                        btn.classList.remove('btn-secondary');
+                        btn.classList.add('btn-primary');
+                        btn.textContent = 'Join Video Call';
+                        btn.addEventListener('click', function () {
+                            const joinUrl = '/Appointments/JoinVideo?appointmentId=' + encodeURIComponent(appointmentId);
+                            window.open(joinUrl, '_blank');
+                        }, { once: true });
+                    }
+                    return;
+                }
+
+                // Not yet: show countdown
+                const msLeft = enableAt - now;
+                const mins = Math.floor(msLeft / 60000);
+                const secs = Math.floor((msLeft % 60000) / 1000);
+                btn.disabled = true;
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+                btn.textContent = `Video link active in ${mins}m ${secs}s`;
+            }
+
+            update();
+            const interval = setInterval(function () {
+                update();
+                const now = new Date();
+                if (now >= endAt) {
+                    clearInterval(interval);
+                }
+                // stop interval if button enabled (to save cycles) - but still let it run until endAt to switch to ended state
+                // we keep interval running until endAt to guarantee showing "Consultation ended"
+            }, 1000);
+        });
+    });
+</script>

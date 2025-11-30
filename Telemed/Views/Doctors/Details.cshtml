@@ -1,0 +1,121 @@
+﻿@model Telemed.Models.Doctor
+
+@{
+    ViewData["Title"] = "Doctor Details";
+}
+
+<style>
+    body {
+        background-color: #f4f6f8;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .doctor-card {
+        background: linear-gradient(145deg, #fff, #e9f0ff);
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin: 40px auto;
+        max-width: 700px;
+        text-align: center;
+        transition: transform 0.3s;
+    }
+
+    .doctor-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #007bff;
+        margin-bottom: 20px;
+    }
+
+    .doctor-name {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+
+    .doctor-info {
+        font-size: 1rem;
+        color: #555;
+        margin-bottom: 10px;
+        text-align: left;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 7px 15px;
+        border-radius: 15px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-top: 10px;
+    }
+
+    .status-approved {
+        background-color: #28a745;
+        color: #fff;
+    }
+
+    .status-pending {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .btn-edit {
+        margin-top: 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        padding: 10px 25px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        transition: transform 0.3s;
+    }
+
+        .btn-edit:hover {
+            transform: scale(1.05);
+            background-color: #0056b3;
+        }
+</style>
+
+<div class="doctor-card">
+    <img src="@(Model.User?.ProfileImageUrl ?? "/images/default-user.png")"
+         alt="@Model.User?.FullName"
+         class="doctor-avatar" />
+
+    <div class="doctor-name">@Model.User?.FullName</div>
+
+    <div class="doctor-info"><strong>Specialization:</strong> @Model.Specialization</div>
+    <div class="doctor-info"><strong>Qualification:</strong> @Model.Qualification</div>
+
+    <!-- 💰 Consultation Fee -->
+    <div class="doctor-info">
+        <strong>Consultation Fee:</strong>
+        @if (Model.ConsultationFee > 0)
+        {
+            <span>@Model.ConsultationFee.ToString("0.00") BDT</span>
+        }
+        else
+        {
+            <span class="text-muted">Not set</span>
+        }
+    </div>
+
+    <div class="doctor-info">
+        <strong>Status:</strong>
+        @if (Model.IsApproved)
+        {
+            <span class="status-badge status-approved">Approved</span>
+        }
+        else
+        {
+            <span class="status-badge status-pending">Pending Approval</span>
+        }
+    </div>
+
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.DoctorId" class="btn btn-edit">Edit Doctor</a>
+    }
+</div>

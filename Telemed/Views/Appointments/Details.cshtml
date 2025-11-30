@@ -1,0 +1,161 @@
+﻿@model Telemed.Models.Appointment
+
+@{
+    ViewData["Title"] = "Appointment Details";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+<style>
+    .appointment-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        padding: 2rem;
+    }
+
+        .appointment-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+
+    .doctor-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #0d6efd;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 140px;
+    }
+
+    .status-badge {
+        font-size: 0.9rem;
+        padding: 6px 12px;
+        border-radius: 8px;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-approved {
+        background-color: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status-rejected {
+        background-color: #f8d7da;
+        color: #842029;
+    }
+
+    .back-btn {
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 500;
+    }
+
+    .video-btn {
+        border-radius: 8px;
+        padding: 10px 25px;
+        font-weight: 500;
+    }
+
+        .video-btn.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+</style>
+
+<div class="container py-5">
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-calendar-check text-primary fs-3 me-2"></i>
+        <h2 class="fw-bold mb-0">Appointment Details</h2>
+    </div>
+
+    <div class="appointment-card">
+        <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+            <img src="@(Model.Doctor?.User?.ProfileImageUrl ?? "/images/default-user.png")"
+                 alt="Doctor Photo"
+                 class="doctor-avatar me-3">
+
+            <div>
+                <h4 class="mb-1">@Model.Doctor?.User?.FullName</h4>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-person-badge me-1"></i>@Model.Doctor?.Specialization
+                </p>
+            </div>
+        </div>
+
+        <div class="row gy-3">
+            <div class="col-md-6 d-flex">
+                <span class="info-label"><i class="bi bi-person-fill me-2 text-primary"></i>Patient:</span>
+                <span>@Model.Patient?.User?.FullName</span>
+            </div>
+
+            <div class="col-md-6 d-flex">
+                <span class="info-label"><i class="bi bi-clock me-2 text-primary"></i>Date & Time:</span>
+                <span>@Model.ScheduledAt.ToString("MMMM dd, yyyy • hh:mm tt")</span>
+            </div>
+
+            <div class="col-md-6 d-flex align-items-center">
+                <span class="info-label"><i class="bi bi-info-circle me-2 text-primary"></i>Status:</span>
+                @{
+                    var statusClass = Model.Status switch
+                    {
+                        Telemed.Models.AppointmentStatus.Approved => "status-badge status-approved",
+                        Telemed.Models.AppointmentStatus.Rejected => "status-badge status-rejected",
+                        _ => "status-badge status-pending"
+                    };
+                }
+                <span class="@statusClass">@Model.Status</span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.PatientNote))
+            {
+                <div class="col-12">
+                    <span class="info-label"><i class="bi bi-chat-left-text me-2 text-primary"></i>Patient Note:</span>
+                    <p class="ms-2 mt-2 text-muted">@Model.PatientNote</p>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.DoctorNote))
+            {
+                <div class="col-12">
+                    <span class="info-label"><i class="bi bi-journal-medical me-2 text-primary"></i>Doctor Note:</span>
+                    <p class="ms-2 mt-2 text-muted">@Model.DoctorNote</p>
+                </div>
+            }
+
+            @* Video Call Link: enable only during appointment slot *@
+            @if (Model.Status == Telemed.Models.AppointmentStatus.Approved
+                        && Model.Schedule != null
+                        && !string.IsNullOrEmpty(Model.Schedule.VideoCallLink))
+            {
+                var now = DateTime.Now;
+                var appointmentStart = Model.ScheduledAt;
+                var appointmentEnd = appointmentStart.AddMinutes(Model.Schedule.SlotDurationMinutes);
+
+                var isActive = now >= appointmentStart && now <= appointmentEnd;
+                var btnClass = isActive ? "btn btn-success video-btn" : "btn btn-success video-btn disabled";
+                <div class="col-12 mt-3 d-flex justify-content-center">
+                    <a href="@(isActive? Model.Schedule.VideoCallLink : "#")" target="_blank" class="@btnClass">
+                        <i class="bi bi-camera-video me-1"></i> Join Video Call
+                    </a>
+                </div>
+            }
+        </div>
+
+        <div class="mt-4 d-flex justify-content-end">
+            <a asp-action="Index" class="btn btn-outline-primary back-btn">
+                <i class="bi bi-arrow-left-circle me-1"></i> Back to Appointments
+            </a>
+        </div>
+    </div>
+</div>

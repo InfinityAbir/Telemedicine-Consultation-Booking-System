@@ -1,0 +1,138 @@
+﻿@{
+    ViewData["Title"] = "Login - TeleMed";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .auth-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 85vh;
+    }
+
+    .auth-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 420px;
+        padding: 40px 35px;
+        text-align: center;
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .auth-card .logo {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #007bff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .auth-card p.subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+        margin-bottom: 25px;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        padding: 12px 15px;
+        font-size: 1rem;
+    }
+
+    .btn-login {
+        background-color: #007bff;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 10px 0;
+        width: 100%;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+    }
+
+        .btn-login:hover {
+            background-color: #0056b3;
+            transform: scale(1.02);
+        }
+
+    .login-links {
+        margin-top: 20px;
+        font-size: 0.95rem;
+    }
+
+        .login-links a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+            .login-links a:hover {
+                text-decoration: underline;
+            }
+</style>
+
+<div class="auth-page">
+    <div class="auth-card shadow-lg">
+        <div class="logo">
+            <i class="fas fa-heartbeat text-danger"></i> TeleMed
+        </div>
+        <p class="subtitle">Sign in to your account</p>
+
+        @if (ViewData.ModelState.ErrorCount > 0)
+        {
+            <div class="alert alert-danger text-start">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <form asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3 text-start">
+                <label for="Email" class="form-label fw-semibold">Email</label>
+                <input type="email" name="email" id="Email" class="form-control" placeholder="Enter your email" required />
+            </div>
+
+            <div class="mb-3 text-start">
+                <label for="Password" class="form-label fw-semibold">Password</label>
+                <input type="password" name="password" id="Password" class="form-control" placeholder="Enter your password" required />
+            </div>
+
+            <div class="form-check text-start mb-3">
+                <input class="form-check-input" type="checkbox" name="rememberMe" id="RememberMe" value="true" />
+                <label class="form-check-label" for="RememberMe">Remember me</label>
+            </div>
+
+            <button type="submit" class="btn btn-login">Login</button>
+
+            <div class="login-links mt-3">
+                <p>
+                    <a asp-action="ForgotPassword">Forgot Password?</a>
+                </p>
+                <p>Don't have an account? <a href="/Account/Register">Register here</a></p>
+            </div>
+        </form>
+    </div>
+</div>

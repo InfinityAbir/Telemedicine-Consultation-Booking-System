@@ -1,0 +1,428 @@
+﻿@model IEnumerable<Telemed.Models.DoctorSchedule>
+
+@{
+    ViewData["Title"] = "My Schedules";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    body {
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .schedule-container {
+        max-width: 1100px;
+        margin: 60px auto;
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .schedule-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+        padding: 20px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+        .schedule-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+    .schedule-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a237e;
+        margin-bottom: 10px;
+    }
+
+    .schedule-detail {
+        font-size: 0.95rem;
+        color: #333;
+        margin: 4px 0;
+    }
+
+    .status-approved {
+        color: #2e7d32;
+        background: #c8e6c9;
+        padding: 5px 12px;
+        border-radius: 8px;
+        display: inline-block;
+        font-weight: 500;
+    }
+
+    .status-pending {
+        color: #e65100;
+        background: #ffe0b2;
+        padding: 5px 12px;
+        border-radius: 8px;
+        display: inline-block;
+        font-weight: 500;
+    }
+
+    .card-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .btn-edit, .btn-delete {
+        flex: 1;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-weight: 500;
+        transition: 0.3s;
+        cursor: pointer;
+    }
+
+    .btn-edit {
+        background: linear-gradient(90deg, #42a5f5, #5c6bc0);
+        color: white;
+    }
+
+        .btn-edit:hover {
+            background: linear-gradient(90deg, #1e88e5, #3949ab);
+        }
+
+    .btn-delete {
+        background: linear-gradient(90deg, #ef5350, #e53935);
+        color: white;
+    }
+
+        .btn-delete:hover {
+            background: linear-gradient(90deg, #c62828, #b71c1c);
+        }
+
+    .no-schedules {
+        text-align: center;
+        margin-top: 80px;
+        color: #666;
+        font-size: 1.1rem;
+    }
+
+    /* Toast / alerts */
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+    }
+
+    .modal .alert {
+        margin-bottom: 12px;
+    }
+</style>
+
+<div class="container mt-5">
+    <h2 class="text-center fw-semibold mb-4 text-primary">My Schedules</h2>
+
+    <!-- Fallback server flash messages -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="schedule-container">
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var schedule in Model)
+            {
+                // add classes for easy DOM updates: .col-starttime, .col-endtime, .col-maxpatients
+                <div class="schedule-card"
+                     data-schedule-id="@schedule.ScheduleId"
+                     data-start="@schedule.StartTime.ToString(@"hh\:mm")"
+                     data-end="@schedule.EndTime.ToString(@"hh\:mm")"
+                     data-max="@schedule.MaxPatientsPerDay">
+
+                    <div class="schedule-header">@schedule.Date.ToString("dddd, MMM dd yyyy")</div>
+
+                    <div class="schedule-detail"><strong>Start Time:</strong> <span class="col-starttime">@schedule.StartTime.ToString(@"hh\:mm")</span></div>
+                    <div class="schedule-detail"><strong>End Time:</strong> <span class="col-endtime">@schedule.EndTime.ToString(@"hh\:mm")</span></div>
+                    <div class="schedule-detail"><strong>Max Patients:</strong> <span class="col-maxpatients">@schedule.MaxPatientsPerDay</span></div>
+
+                    <div class="mt-2">
+                        <span class="@(schedule.IsApproved ? "status-approved" : "status-pending")">
+                            @(schedule.IsApproved ? "Approved" : "Pending Approval")
+                        </span>
+                    </div>
+
+                    <div class="card-buttons">
+                        <button type="button" class="btn-edit" onclick="openEditModalFromCard(this)">
+                            <i class="bi bi-pencil-square"></i> Edit
+                        </button>
+
+                        <form asp-action="DeleteConfirmed" asp-route-id="@schedule.ScheduleId" method="post"
+                              onsubmit="return confirm('Are you sure you want to delete this schedule?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-delete">
+                                <i class="bi bi-trash3"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="no-schedules">
+                You don’t have any schedules yet.<br />
+                <a href="@Url.Action("Create", "DoctorSchedules")" class="btn btn-primary mt-3">Add New Schedule</a>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <form id="editForm" method="post" asp-action="EditSchedule" asp-controller="DoctorSchedules">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold text-primary">Edit Schedule</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="editFormAlertPlaceholder"></div>
+
+                    <input type="hidden" id="editScheduleId" name="ScheduleId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Start Time</label>
+                        <input type="time" class="form-control" id="editStartTime" name="StartTime" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">End Time</label>
+                        <input type="time" class="form-control" id="editEndTime" name="EndTime" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Max Patients</label>
+                        <input type="number" class="form-control" id="editMaxPatients" name="MaxPatientsPerDay" min="1" required />
+                        <div id="editMaxHelp" class="form-text mt-1">Allowed per day: —</div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" id="editSubmitBtn" class="btn btn-primary px-4">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container for client-side notifications -->
+<div class="toast-container" id="clientToasts" aria-live="polite" aria-atomic="true"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    (function () {
+        const MIN_MINUTES_PER_PATIENT = 10;
+
+        // Helpers
+        function parseTimeToMinutes(timeStr) {
+            if (!timeStr) return null;
+            const parts = timeStr.split(':');
+            if (parts.length < 2) return null;
+            const h = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            if (Number.isNaN(h) || Number.isNaN(m)) return null;
+            return h * 60 + m;
+        }
+
+        function computeAllowed(startTimeStr, endTimeStr) {
+            const s = parseTimeToMinutes(startTimeStr);
+            const e = parseTimeToMinutes(endTimeStr);
+            if (s === null || e === null) return 0;
+            const diff = e - s;
+            if (diff <= 0) return 0;
+            return Math.floor(diff / MIN_MINUTES_PER_PATIENT);
+        }
+
+        function showModalAlert(message, type = 'danger') {
+            const holder = document.getElementById('editFormAlertPlaceholder');
+            holder.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
+        }
+
+        function clearModalAlert() {
+            document.getElementById('editFormAlertPlaceholder').innerHTML = '';
+        }
+
+        function showToast(message, variant = 'success') {
+            const container = document.getElementById('clientToasts');
+            const toastId = 't' + Math.random().toString(36).slice(2, 9);
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white bg-${variant} border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+                  <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                  </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', toastHtml);
+            // auto dismiss after 3s
+            setTimeout(() => {
+                const tEl = document.getElementById(toastId);
+                if (tEl) tEl.remove();
+            }, 3000);
+        }
+
+        // open modal from card
+        window.openEditModalFromCard = function (button) {
+            const card = button.closest(".schedule-card");
+            if (!card) return;
+            const id = card.getAttribute("data-schedule-id");
+            const start = card.getAttribute("data-start");
+            const end = card.getAttribute("data-end");
+            const max = card.getAttribute("data-max");
+
+            document.getElementById("editScheduleId").value = id;
+            document.getElementById("editStartTime").value = start || '';
+            document.getElementById("editEndTime").value = end || '';
+            document.getElementById("editMaxPatients").value = max || '';
+
+            updateEditAllowedDisplay();
+
+            clearModalAlert();
+            const modalEl = document.getElementById('editModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        };
+
+        // update allowed display in modal
+        function updateEditAllowedDisplay() {
+            const s = document.getElementById('editStartTime').value;
+            const e = document.getElementById('editEndTime').value;
+            const allowed = computeAllowed(s, e);
+            const help = document.getElementById('editMaxHelp');
+            help.textContent = allowed > 0 ? `Allowed per day: ${allowed} patient${allowed !== 1 ? 's' : ''} (min ${MIN_MINUTES_PER_PATIENT} min each)` : 'Allowed per day: choose valid start and end times.';
+        }
+
+        ['editStartTime', 'editEndTime'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => {
+                updateEditAllowedDisplay();
+                clearModalAlert();
+            });
+        });
+
+        // AJAX form submit for edit
+        const editForm = document.getElementById('editForm');
+        if (editForm) {
+            editForm.addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                clearModalAlert();
+
+                const scheduleId = document.getElementById('editScheduleId').value;
+                const startTime = document.getElementById('editStartTime').value;
+                const endTime = document.getElementById('editEndTime').value;
+                const maxPatients = parseInt(document.getElementById('editMaxPatients').value || '0', 10);
+
+                // client-side mirroring validation
+                if (!startTime || !endTime) {
+                    showModalAlert('Please provide start and end times.', 'danger');
+                    return;
+                }
+                const s = parseTimeToMinutes(startTime);
+                const e = parseTimeToMinutes(endTime);
+                if (e <= s) {
+                    showModalAlert('End time must be after start time.', 'danger');
+                    return;
+                }
+
+                if (!maxPatients || Number.isNaN(maxPatients) || maxPatients <= 0) {
+                    showModalAlert('Enter a valid number of patients.', 'danger');
+                    return;
+                }
+
+                const allowed = computeAllowed(startTime, endTime);
+                if (maxPatients > allowed) {
+                    showModalAlert(`Too many patients for selected time range. Max allowed: ${allowed}.`, 'danger');
+                    return;
+                }
+
+                // prepare formData (includes antiforgery token hidden input)
+                const fd = new FormData(editForm);
+
+                // set button disabled
+                const submitBtn = document.getElementById('editSubmitBtn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+
+                try {
+                    const res = await fetch(editForm.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: fd
+                    });
+
+                    // try parse json
+                    const json = await res.json().catch(() => null);
+
+                    if (json && typeof json === 'object') {
+                        if (json.success) {
+                            showToast(json.message || 'Schedule updated', 'success');
+                            // update the card in-place
+                            const card = document.querySelector(`.schedule-card[data-schedule-id="${scheduleId}"]`);
+                            if (card) {
+                                const startEl = card.querySelector('.col-starttime');
+                                const endEl = card.querySelector('.col-endtime');
+                                const maxEl = card.querySelector('.col-maxpatients');
+                                if (startEl) startEl.textContent = startTime;
+                                if (endEl) endEl.textContent = endTime;
+                                if (maxEl) maxEl.textContent = maxPatients;
+
+                                // update data attributes
+                                card.setAttribute('data-start', startTime);
+                                card.setAttribute('data-end', endTime);
+                                card.setAttribute('data-max', maxPatients);
+                            }
+                            // hide modal after short delay
+                            setTimeout(() => {
+                                const modalEl = document.getElementById('editModal');
+                                const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                                modalInstance.hide();
+                            }, 550);
+                        } else {
+                            // server-side validation error
+                            showModalAlert(json.message || 'Validation failed', 'danger');
+                            // if controller returned allowed value, show it in help
+                            if (json.allowed !== undefined && json.allowed !== null) {
+                                document.getElementById('editMaxHelp').textContent = `Allowed per day: ${json.allowed}`;
+                            }
+                        }
+                    } else {
+                        // non-json response (maybe redirect) -> fallback reload
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showModalAlert('Unexpected error. Try again.', 'danger');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save Changes';
+                }
+            });
+        }
+    })();
+</script>

@@ -1,0 +1,347 @@
+﻿@using Telemed.Services
+@model Telemed.Models.Payment
+@using Microsoft.Extensions.Options
+@using Telemed.Models
+@inject Microsoft.Extensions.Options.IOptions<StripeSettings> StripeOptions
+
+@{
+    ViewData["Title"] = "Payment";
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isPatientOwner = User.IsInRole("Patient") && Model?.Appointment?.Patient?.UserId == userId;
+    var invoice = ViewBag.Invoice as Telemed.Models.Invoice;
+    string doctorName = Model?.Appointment?.Doctor?.User?.FullName ?? "—";
+    string specialization = Model?.Appointment?.Doctor?.Specialization ?? "—";
+
+    // Prefer controller-provided ViewBag values (StartPayment sets these).
+    // If not provided, convert on-the-fly using TimeZoneHelper.
+    string scheduledAt;
+    if (ViewBag.ScheduledDate != null && ViewBag.ScheduledTime != null)
+    {
+        scheduledAt = $"{ViewBag.ScheduledDate} at {ViewBag.ScheduledTime}";
+    }
+    else if (Model?.Appointment?.ScheduledAt != null)
+    {
+        try
+        {
+            var scheduledDhaka = TimeZoneHelper.ConvertToDhaka(Model.Appointment.ScheduledAt);
+            scheduledAt = scheduledDhaka.ToString("dd MMM yyyy, hh:mm tt");
+        }
+        catch
+        {
+            scheduledAt = Model.Appointment.ScheduledAt.ToString("dd MMM yyyy, hh:mm tt");
+        }
+    }
+    else
+    {
+        scheduledAt = "—";
+    }
+
+    string amountText = Model != null ? $"৳{Model.Amount:0.00}" : "৳0.00";
+
+    // Stripe publishable key (from config / user-secrets)
+    var stripePk = StripeOptions?.Value?.PublishableKey ?? "pk_test_xxx";
+
+    // amount in smallest currency unit (cents/paisa) for JS display (server is the source of truth)
+    var amountInCents = (long)Math.Round((Model?.Amount ?? 0m) * 100m);
+
+    // Currency used for Stripe. Change to "bdt" if you bill in Bangladeshi Taka
+    var currency = "usd";
+    var patientEmail = Model?.Appointment?.Patient?.User?.Email ?? "";
+    var paymentId = Model?.PaymentId ?? 0;
+    var appointmentId = Model?.Appointment?.AppointmentId ?? 0;
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-9 col-lg-7">
+            <div class="card shadow-sm rounded-4 border-0 overflow-hidden">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div>
+                            <h3 class="h5 mb-0">Complete Your Payment</h3>
+                            <small class="text-muted">Secure payment for your teleconsultation</small>
+                        </div>
+                        <div class="text-end">
+                            @if (Model?.Status == Telemed.Models.PaymentStatus.Paid)
+                            {
+                                <span class="badge bg-success">Paid</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            }
+                        </div>
+                    </div>
+
+                    <dl class="row mb-3">
+                        <dt class="col-sm-4 text-muted">Doctor</dt>
+                        <dd class="col-sm-8 fw-semibold">@doctorName</dd>
+
+                        <dt class="col-sm-4 text-muted">Specialization</dt>
+                        <dd class="col-sm-8">@specialization</dd>
+
+                        <dt class="col-sm-4 text-muted">Appointment</dt>
+                        <dd class="col-sm-8">@scheduledAt</dd>
+
+                        <dt class="col-sm-4 text-muted">Consultation Fee</dt>
+                        <dd class="col-sm-8 display-6 fw-bold">@amountText</dd>
+                    </dl>
+
+                    <div class="mb-3">
+                        @if (Model?.Status != Telemed.Models.PaymentStatus.Paid)
+                        {
+                            @if (isPatientOwner)
+                            {
+                                <!-- Stripe payment UI -->
+                                <div id="stripe-payment-area" class="mb-3">
+                                    <div id="card-element" style="padding:12px; border:1px solid #e3e3e3; border-radius:6px;"></div>
+                                    <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+                                    <div class="mt-3 d-grid">
+                                        <button id="stripePayBtn" class="btn btn-primary btn-lg rounded-pill d-flex align-items-center justify-content-center">
+                                            <span id="stripePayText">Pay Now — @amountText</span>
+                                            <span id="stripeSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">Powered by Stripe. By clicking pay you agree to our <a href="#">terms</a>.</small>
+                                </div>
+
+                                <!-- Hidden form to post to ProcessPayment (server-side finalization) -->
+                                <form id="post-payment-form" method="post" asp-action="ProcessPayment" asp-controller="Payments" style="display:none;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="paymentId" id="hiddenPaymentId" value="@paymentId" />
+                                </form>
+
+                                <!-- Keep legacy server-only form as fallback (not shown) -->
+                            }
+                            else
+                            {
+                                <div class="alert alert-secondary mb-0">You are not authorized to pay for this appointment.</div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <div>
+                                    <h6 class="mb-1">Payment completed</h6>
+                                    <p class="mb-0 text-muted">Thank you — your invoice is ready.</p>
+                                </div>
+
+                                <div class="d-flex flex-column align-items-end">
+                                    @if (invoice != null)
+                                    {
+                                        <div class="d-flex gap-2">
+                                            <a asp-controller="Invoices" asp-action="DownloadInvoice" asp-route-id="@invoice.InvoiceId" class="btn btn-outline-primary" title="Download invoice (PDF)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16"><path d="M.5 9.9V13a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V9.9a.5.5 0 0 0-1 0V13a.5.5 0 0 1-.5.5H1.5A.5.5 0 0 1 1 13V9.9a.5.5 0 0 0-1 0z" /><path d="M7.646 10.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 9.293V1.5a.5.5 0 0 0-1 0v7.793L5.354 7.44a.5.5 0 1 0-.708.708l3 3z" /></svg>
+                                                Download
+                                            </a>
+
+                                            @if (!string.IsNullOrWhiteSpace(invoice.PdfFilePath))
+                                            {
+                                                <a class="btn btn-outline-secondary" href="@Url.Content(invoice.PdfFilePath)" target="_blank" rel="noopener">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-pdf me-1" viewBox="0 0 16 16"><path d="M5.5 7.5A.5.5 0 0 1 6 8v4a.5.5 0 0 1-1 0V8a.5.5 0 0 1 .5-.5z" /><path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.293 4L10 0.707A1 1 0 0 0 9.293 0zM10 1.5L13.5 5H10V1.5z" /></svg>
+                                                    Open PDF
+                                                </a>
+                                            }
+                                        </div>
+
+                                        <small class="text-muted mt-2">Invoice sent to <strong>@invoice.PatientEmail</strong> (if available).</small>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-end">
+                                            <small class="text-muted">Invoice is being prepared. Refresh this page in a moment to see it.</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                </div>
+
+                <div class="card-footer bg-white border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-action="Index" asp-controller="Appointments" class="text-decoration-none">
+                            ← Back to Appointments
+                        </a>
+                        <small class="text-muted">Need help? <a href="/Contact">Contact us</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        (function () {
+            // Server-rendered values (sanity-check)
+            const stripePk = '@(stripePk ?? "")';
+            const appointmentId = @(appointmentId);
+            const paymentId = @(paymentId);
+            const currency = '@currency';
+            const customerEmail = "@(patientEmail ?? "")";
+            const amountText = '@amountText';
+
+            // Endpoint URLs (use Url.Action so paths are correct in virtual apps/areas)
+            const createIntentUrl = '@Url.Action("CreatePaymentIntent", "Payments")';
+            const finalizeUrl = '@Url.Action("ProcessPayment", "Payments")';
+            const startPaymentRedirectUrl = '@Url.Action("StartPayment", "Payments")';
+
+            const payBtn = document.getElementById('stripePayBtn');
+            const payText = document.getElementById('stripePayText');
+            const spinner = document.getElementById('stripeSpinner');
+            const cardErrors = document.getElementById('card-errors');
+
+            function showError(msg) {
+                console.error('Payment UI error:', msg);
+                if (cardErrors) cardErrors.textContent = msg;
+            }
+
+            function showProcessing(isProcessing) {
+                if (!payBtn) return;
+                payBtn.disabled = isProcessing;
+                if (isProcessing) {
+                    spinner.classList.remove('d-none');
+                    payText.textContent = 'Processing...';
+                } else {
+                    spinner.classList.add('d-none');
+                    payText.textContent = `Pay Now — ${amountText}`;
+                }
+            }
+
+            // Basic sanity checks
+            if (!payBtn) {
+                console.warn('stripePayBtn not found in DOM — button may not be rendered for this user.');
+                return;
+            }
+            if (!stripePk) {
+                showError('Payment configuration error: publishable key missing.');
+                return;
+            }
+            if (!appointmentId || appointmentId === 0) {
+                showError('Invalid appointment id. Cannot create payment.');
+                return;
+            }
+
+            // Initialize Stripe safely
+            let stripe, elements, card;
+            try {
+                stripe = Stripe(stripePk);
+                elements = stripe.elements();
+                card = elements.create('card', { hidePostalCode: true });
+                card.mount('#card-element');
+
+                // show card validation errors
+                card.on('change', function (ev) {
+                    if (ev.error) showError(ev.error.message);
+                    else showError('');
+                });
+            } catch (initEx) {
+                showError('Stripe initialization failed. Check publishable key.');
+                console.error(initEx);
+                return;
+            }
+
+            payBtn.addEventListener('click', async function (e) {
+                e.preventDefault(); // allowed — do not use passive listeners
+
+                // Confirm user intent
+                if (!confirm('Are you sure you want to pay now?')) return;
+
+                showError('');
+                showProcessing(true);
+
+                try {
+                    console.log('Creating PaymentIntent', { appointmentId, currency, customerEmail, createIntentUrl });
+
+                    const resp = await fetch(createIntentUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            appointmentId: appointmentId,
+                            currency: currency,
+                            customerEmail: customerEmail
+                        }),
+                        credentials: 'same-origin'
+                    });
+
+                    if (!resp.ok) {
+                        const err = await resp.json().catch(() => null);
+                        const msg = err?.error || `Server returned ${resp.status}`;
+                        showError('Failed to create payment: ' + msg);
+                        showProcessing(false);
+                        return;
+                    }
+
+                    const data = await resp.json();
+                    const clientSecret = data.clientSecret;
+                    if (!clientSecret) {
+                        showError('No client secret returned from server.');
+                        showProcessing(false);
+                        return;
+                    }
+
+                    // Confirm card payment
+                    const result = await stripe.confirmCardPayment(clientSecret, {
+                        payment_method: {
+                            card: card,
+                            billing_details: {
+                                email: customerEmail || undefined
+                            }
+                        }
+                    });
+
+                    if (result.error) {
+                        showError(result.error.message || 'Payment failed.');
+                        showProcessing(false);
+                        return;
+                    }
+
+                    if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+                        // Finalize on server (use hidden form to include antiforgery token)
+                        try {
+                            document.getElementById('hiddenPaymentId').value = paymentId || 0;
+                            const form = document.getElementById('post-payment-form');
+                            const formData = new FormData(form);
+
+                            const finalizeResp = await fetch(form.action || finalizeUrl, {
+                                method: 'POST',
+                                body: formData,
+                                credentials: 'same-origin'
+                            });
+
+                            if (finalizeResp.ok) {
+                                // navigate to StartPayment to refresh view (server will show invoice etc.)
+                                window.location.href = `${startPaymentRedirectUrl}?appointmentId=${appointmentId}`;
+                            } else {
+                                // try to extract message
+                                let msg = 'Server finalization failed.';
+                                try {
+                                    const json = await finalizeResp.json();
+                                    msg = json.error || msg;
+                                } catch (_) { /* ignore */ }
+                                showError('Payment succeeded but server finalization failed: ' + msg);
+                                showProcessing(false);
+                            }
+                        } catch (exFinalize) {
+                            console.error(exFinalize);
+                            showError('Payment succeeded but error occurred finalizing on server.');
+                            showProcessing(false);
+                        }
+                    } else {
+                        showError('Payment status: ' + (result.paymentIntent ? result.paymentIntent.status : 'unknown'));
+                        showProcessing(false);
+                    }
+                } catch (ex) {
+                    console.error('Unexpected error in payment flow:', ex);
+                    showError('Unexpected error. Check console and network tab.');
+                    showProcessing(false);
+                }
+            });
+        })();
+    </script>
+}
+
+}

@@ -1,0 +1,222 @@
+﻿@model Telemed.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Register - TeleMed";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .auth-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 85vh;
+    }
+
+    .auth-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        width: 100%;
+        max-width: 520px;
+        padding: 40px 35px;
+        text-align: center;
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .auth-card .logo {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #007bff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .auth-card p.subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+        margin-bottom: 25px;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        padding: 12px 15px;
+        font-size: 1rem;
+    }
+
+    .btn-register {
+        background-color: #007bff;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 10px 0;
+        width: 100%;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+    }
+
+        .btn-register:hover {
+            background-color: #0056b3;
+            transform: scale(1.02);
+        }
+
+    .register-links {
+        margin-top: 20px;
+        font-size: 0.95rem;
+    }
+
+        .register-links a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+            .register-links a:hover {
+                text-decoration: underline;
+            }
+</style>
+
+<div class="auth-page">
+    <div class="auth-card shadow-lg">
+        <div class="logo">
+            <i class="fas fa-heartbeat text-danger"></i> TeleMed
+        </div>
+        <p class="subtitle">Create your account</p>
+
+        @* Show TempData messages (e.g., after registration or when redirected from confirm) *@
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-info">@TempData["Message"]</div>
+        }
+
+        <form asp-action="Register" method="post">
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+            <div class="text-start mb-3">
+                <label asp-for="FullName" class="form-label fw-semibold"></label>
+                <input asp-for="FullName" class="form-control" placeholder="Enter your full name" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+
+            <div class="text-start mb-3">
+                <label asp-for="Email" class="form-label fw-semibold"></label>
+                <input asp-for="Email" type="email" class="form-control" placeholder="Enter your email" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="text-start mb-3">
+                <label asp-for="Password" class="form-label fw-semibold"></label>
+                <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="text-start mb-3">
+                <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
+                <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm your password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <div class="text-start mb-4">
+                <label asp-for="RegisterAs" class="form-label fw-semibold"></label>
+                <select asp-for="RegisterAs" class="form-select" id="registerAs">
+                    <option value="Patient">Patient</option>
+                    <option value="Doctor">Doctor</option>
+                </select>
+            </div>
+
+            <!-- Doctor fields -->
+            <div id="doctorFields" style="display:none;">
+                <div class="text-start mb-3">
+                    <label asp-for="BMDCNumber" class="form-label fw-semibold"></label>
+                    <input asp-for="BMDCNumber" class="form-control" placeholder="Enter your BM&DC Registration Number" />
+                    <span asp-validation-for="BMDCNumber" class="text-danger"></span>
+                </div>
+                <div class="text-start mb-3">
+                    <label asp-for="Specialization" class="form-label fw-semibold"></label>
+                    <input asp-for="Specialization" class="form-control" placeholder="Enter your specialization" />
+                    <span asp-validation-for="Specialization" class="text-danger"></span>
+                </div>
+                <div class="text-start mb-3">
+                    <label asp-for="Qualification" class="form-label fw-semibold"></label>
+                    <input asp-for="Qualification" class="form-control" placeholder="Enter your qualification" />
+                    <span asp-validation-for="Qualification" class="text-danger"></span>
+                </div>
+                <div class="text-start mb-3">
+                    <label asp-for="ConsultationFee" class="form-label fw-semibold"></label>
+                    <input asp-for="ConsultationFee" type="number" class="form-control" placeholder="Enter consultation fee" />
+                    <span asp-validation-for="ConsultationFee" class="text-danger"></span>
+                </div>
+                <div class="text-start mb-3">
+                    <label asp-for="Bio" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Bio" class="form-control" placeholder="Short bio or clinic address"></textarea>
+                    <span asp-validation-for="Bio" class="text-danger"></span>
+                </div>
+            </div>
+
+            <!-- Patient fields -->
+            <div id="patientFields">
+                <div class="text-start mb-3">
+                    <label asp-for="DOB" class="form-label fw-semibold"></label>
+                    <input asp-for="DOB" type="date" class="form-control" />
+                    <span asp-validation-for="DOB" class="text-danger"></span>
+                </div>
+                <div class="text-start mb-3">
+                    <label asp-for="Gender" class="form-label fw-semibold"></label>
+                    <select asp-for="Gender" class="form-select">
+                        <option value="">Select Gender</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                        <option>Other</option>
+                    </select>
+                    <span asp-validation-for="Gender" class="text-danger"></span>
+                </div>
+                <div class="text-start mb-3">
+                    <label asp-for="ContactNumber" class="form-label fw-semibold"></label>
+                    <input asp-for="ContactNumber" class="form-control" placeholder="Enter your contact number" />
+                    <span asp-validation-for="ContactNumber" class="text-danger"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-register">Register</button>
+
+            <div class="register-links mt-3">
+                <p>Already have an account? <a href="/Account/Login">Login here</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const registerAs = document.getElementById("registerAs");
+        const doctorFields = document.getElementById("doctorFields");
+        const patientFields = document.getElementById("patientFields");
+
+        function toggleFields() {
+            if (registerAs.value === "Doctor") {
+                doctorFields.style.display = "block";
+                patientFields.style.display = "none";
+            } else {
+                doctorFields.style.display = "none";
+                patientFields.style.display = "block";
+            }
+        }
+
+        registerAs.addEventListener("change", toggleFields);
+        toggleFields();
+    </script>
+}

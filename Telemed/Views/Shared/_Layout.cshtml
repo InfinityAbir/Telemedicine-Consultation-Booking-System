@@ -1,0 +1,488 @@
+﻿@inject UserManager<Telemed.Models.ApplicationUser> UserManager
+@using Microsoft.AspNetCore.Identity
+@using Telemed.Models
+@{
+    ViewData["Title"] ??= "TeleMed";
+
+    string userFullName = "";
+    bool isAdmin = false;
+    bool isDoctor = false;
+    bool isPatient = false;
+
+    if (User.Identity.IsAuthenticated)
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        if (currentUser != null)
+        {
+            userFullName = currentUser.FullName;
+            isAdmin = await UserManager.IsInRoleAsync(currentUser, "Admin");
+            isDoctor = await UserManager.IsInRoleAsync(currentUser, "Doctor");
+            isPatient = await UserManager.IsInRoleAsync(currentUser, "Patient");
+        }
+    }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TeleMed</title>
+
+    <!-- Bootstrap & Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/site.css" />
+
+    <style>
+        :root {
+            --sidebar-narrow: 70px;
+            --sidebar-wide: 250px;
+            --sidebar-bg: linear-gradient(45deg, #007bff, #00b4ff, #0056b3, #007bff);
+            --sidebar-hover-bg: rgba(255,255,255,0.12);
+            --sidebar-top-padding: 60px;
+        }
+
+        /* Page base */
+        body {
+            font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background-color: #f8f9fa;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* Sidebar container */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-narrow);
+            padding-top: var(--sidebar-top-padding);
+            color: #fff;
+            background: var(--sidebar-bg);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            transition: width 0.22s ease, transform 0.22s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        @@keyframes gradientBG {
+            0%
+
+        {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+
+        }
+
+        /* Expand on desktop hover */
+        .sidebar:hover {
+            width: var(--sidebar-wide);
+        }
+
+        /* Header */
+        .sidebar .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            margin: 0 6px 12px 6px;
+            font-weight: 700;
+            height: calc(var(--sidebar-top-padding) - 12px);
+            box-sizing: border-box;
+        }
+
+        .sidebar .brand-icon {
+            font-size: 1.15rem;
+            flex: 0 0 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar .brand-text {
+            opacity: 0;
+            max-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: opacity 0.18s ease, max-width 0.22s ease;
+            font-size: 1rem;
+        }
+
+        .sidebar:hover .brand-text {
+            opacity: 1;
+            max-width: 200px;
+        }
+
+        /* nav area */
+        .sidebar nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px;
+            flex: 1 1 auto;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Links */
+        .sidebar a, .sidebar .btn-link-like {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.18s ease, transform 0.12s ease;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+
+            .sidebar a .bi, .sidebar a .fas, .sidebar .btn-link-like .bi {
+                font-size: 1.2rem;
+                width: 26px;
+                text-align: center;
+                flex: 0 0 26px;
+            }
+
+            .sidebar a:hover, .sidebar .btn-link-like:hover {
+                background: var(--sidebar-hover-bg);
+                transform: translateX(4px);
+                text-decoration: none;
+            }
+
+        /* Menu text hidden collapsed, revealed on hover */
+        .sidebar .menu-text {
+            opacity: 0;
+            transform: translateX(-6px);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            overflow: hidden;
+        }
+
+        .sidebar:hover .menu-text {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* bottom actions pinned to bottom */
+        .bottom-actions {
+            flex: 0 0 auto;
+            padding: 8px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-sizing: border-box;
+        }
+
+            .bottom-actions .small-profile {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: #fff;
+                text-decoration: none;
+                padding: 8px;
+                border-radius: 8px;
+                transition: background 0.18s ease;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+                .bottom-actions .small-profile .bi {
+                    font-size: 1.1rem;
+                    flex: 0 0 26px;
+                    text-align: center;
+                }
+
+            /* Logout button turned into icon+text like links for consistency */
+            .bottom-actions .logout-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 10px;
+                border-radius: 8px;
+                border: 1px solid rgba(255,255,255,0.12);
+                background: transparent;
+                color: #fff;
+                cursor: pointer;
+                font-weight: 500;
+                box-sizing: border-box;
+                transition: background 0.18s ease, transform 0.12s ease;
+            }
+
+                .bottom-actions .logout-btn .bi {
+                    font-size: 1.1rem;
+                    flex: 0 0 26px;
+                    text-align: center;
+                }
+
+                .bottom-actions .logout-btn:hover {
+                    background: rgba(255,255,255,0.04);
+                    transform: translateX(3px);
+                }
+
+        /* --- Alignment fix: collapsed vs expanded states --- */
+
+        /* Collapsed state (not hovered) */
+        .sidebar:not(:hover) .bottom-actions .logout-btn,
+        .sidebar:not(:hover) .bottom-actions .small-profile {
+            justify-content: center; /* center icon */
+            padding-left: 0;
+            padding-right: 0;
+            width: calc(var(--sidebar-narrow) - 16px);
+            margin: 0 auto;
+        }
+
+            .sidebar:not(:hover) .bottom-actions .logout-btn .menu-text,
+            .sidebar:not(:hover) .bottom-actions .small-profile .menu-text {
+                display: none; /* hide text completely for perfect centering */
+            }
+
+        /* Expanded state: full width, left-aligned text */
+        .sidebar:hover .bottom-actions .logout-btn,
+        .sidebar:hover .bottom-actions .small-profile {
+            justify-content: flex-start;
+            width: 100%;
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+            .sidebar:hover .bottom-actions .logout-btn .menu-text,
+            .sidebar:hover .bottom-actions .small-profile .menu-text {
+                display: inline; /* shown, and .menu-text opacity logic also applies */
+            }
+
+        /* Main content shift */
+        main {
+            margin-left: var(--sidebar-narrow);
+            padding: 20px;
+            transition: margin-left 0.22s ease;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .sidebar:hover ~ main {
+            margin-left: var(--sidebar-wide);
+        }
+
+        footer {
+            background: #212529;
+            color: #f8f9fa;
+        }
+
+        /* Toggle button for mobile */
+        .toggle-btn {
+            position: fixed;
+            top: 18px;
+            left: calc(var(--sidebar-narrow) + 12px);
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            padding: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 1200;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Mobile behavior */
+        @@media (max-width: 900px) {
+            .toggle-btn
+
+        {
+            display: block;
+            left: 18px;
+        }
+
+        /* move sidebar completely off-screen by default on small screens */
+        .sidebar {
+            transform: translateX(calc(-1 * var(--sidebar-narrow)));
+        }
+
+            /* when open, visible */
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar .brand-text {
+                opacity: 0 !important;
+                max-width: 0 !important;
+            }
+
+        main {
+            margin-left: 0;
+        }
+
+        /* Ensure bottom-actions alignment on mobile open (show text) */
+        .sidebar.open .bottom-actions .logout-btn,
+        .sidebar.open .bottom-actions .small-profile {
+            justify-content: flex-start;
+            width: 100%;
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+            .sidebar.open .bottom-actions .logout-btn .menu-text,
+            .sidebar.open .bottom-actions .small-profile .menu-text {
+                display: inline;
+            }
+
+        }
+
+        /* scrollbars subtle */
+        .sidebar nav::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar nav::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.25);
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar" aria-label="Primary navigation">
+        <div class="sidebar-header">
+            <div class="brand-icon"><i class="fas fa-heartbeat text-danger" aria-hidden="true"></i></div>
+            <div class="brand-text">TeleMed</div>
+        </div>
+
+        <nav role="menu" aria-label="Main menu">
+            <a href="@Url.Action("Index", "Home")" role="menuitem" title="Home">
+                <i class="bi bi-house-door" aria-hidden="true"></i>
+                <span class="menu-text">Home</span>
+            </a>
+
+            <a href="@Url.Action("Index", "Doctors")" role="menuitem" title="Doctors">
+                <i class="bi bi-person-badge" aria-hidden="true"></i>
+                <span class="menu-text">Doctors</span>
+            </a>
+
+            @if (User.Identity.IsAuthenticated)
+            {
+                if (isAdmin)
+                {
+                    <a href="@Url.Action("AdminIndex", "Appointments")"><i class="bi bi-calendar-check"></i><span class="menu-text">All Appointments</span></a>
+                    <a href="@Url.Action("Payments", "Admin")"><i class="bi bi-currency-dollar"></i><span class="menu-text">Payments</span></a>
+                    <a href="@Url.Action("Report", "Admin")"><i class="bi bi-graph-up"></i><span class="menu-text">Reports</span></a>
+                    <a href="@Url.Action("Index", "Patients")"><i class="bi bi-people"></i><span class="menu-text">Patient List</span></a>
+                    <a href="@Url.Action("PendingDoctors", "Admin")"><i class="bi bi-hourglass-split"></i><span class="menu-text">Pending Requests</span></a>
+                    <a href="@Url.Action("PendingSchedules", "Admin")"><i class="bi bi-clock-history"></i><span class="menu-text">Schedule Requests</span></a>
+                    <a href="@Url.Action("AdminFeedbacks", "Feedback")"><i class="bi bi-chat-left-text"></i><span class="menu-text">All Feedbacks</span></a>
+                }
+                else if (isDoctor)
+                {
+                    <a href="@Url.Action("DoctorIndex", "Appointments")"><i class="bi bi-calendar-check"></i><span class="menu-text">My Appointments</span></a>
+                    <a href="@Url.Action("Create", "DoctorSchedules")"><i class="bi bi-clock"></i><span class="menu-text">Add Schedule</span></a>
+                    <a href="@Url.Action("MySchedules", "DoctorSchedules")"><i class="bi bi-list-check"></i><span class="menu-text">My Schedules</span></a>
+                    <a href="@Url.Action("Create", "Prescriptions")"><i class="bi bi-plus-square"></i><span class="menu-text">Add Prescription</span></a>
+                    <a href="@Url.Action("Index", "Payments")"><i class="bi bi-cash-stack"></i><span class="menu-text">View Payments</span></a>
+                    <a href="@Url.Action("DoctorFeedbacks", "Feedback")"><i class="bi bi-chat-left-text"></i><span class="menu-text">Patient Feedbacks</span></a>
+                }
+                else if (isPatient)
+                {
+                    <a href="@Url.Action("Index", "Appointments")"><i class="bi bi-calendar-check"></i><span class="menu-text">My Appointments</span></a>
+                    <a href="@Url.Action("Create", "Appointments")"><i class="bi bi-calendar-plus"></i><span class="menu-text">Book Appointment</span></a>
+                    <a href="@Url.Action("Index", "Prescriptions")"><i class="bi bi-file-earmark-text"></i><span class="menu-text">Doctor Prescriptions</span></a>
+                    <a href="@Url.Action("Index", "PatientPrescriptions")"><i class="bi bi-upload"></i><span class="menu-text">My Prescriptions</span></a>
+                    <a href="@Url.Action("Index", "Payments")"><i class="bi bi-cash-stack"></i><span class="menu-text">My Payments</span></a>
+                    <a href="@Url.Action("MyFeedbacks", "Feedback")"><i class="bi bi-chat-left-text"></i><span class="menu-text">My Feedbacks</span></a>
+                }
+
+                <a href="@Url.Action("Profile", "Account")"><i class="bi bi-person-circle"></i><span class="menu-text">My Profile</span></a>
+            }
+            else
+            {
+                <a class="btn btn-outline-light w-100 mt-2 btn-link-like" href="@Url.Action("Login", "Account")"><i class="bi bi-box-arrow-in-right"></i><span class="menu-text">Login</span></a>
+                <a class="btn btn-light text-primary w-100 mt-2 btn-link-like" href="@Url.Action("Register", "Account")"><i class="bi bi-person-plus"></i><span class="menu-text">Sign Up</span></a>
+            }
+
+            <a href="@Url.Action("About", "Home")"><i class="bi bi-info-circle"></i><span class="menu-text">About</span></a>
+        </nav>
+
+        <!-- pinned bottom area so logout/profile always visible -->
+        <div class="bottom-actions">
+            @if (User.Identity.IsAuthenticated)
+            {
+                <a href="@Url.Action("Profile", "Account")" class="small-profile" title="Profile">
+                    <i class="bi bi-person-check" aria-hidden="true"></i>
+                    <span class="menu-text">Hi, @userFullName</span>
+                </a>
+                <form method="post" asp-controller="Account" asp-action="Logout">
+                    <button type="submit" class="logout-btn" title="Logout">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                        <span class="menu-text">Logout</span>
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <main id="mainContent" tabindex="-1">
+        @RenderBody()
+    </main>
+
+    <button class="toggle-btn" id="toggleSidebar" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+
+    <footer class="text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-1">&copy; @DateTime.Now.Year <strong>TeleMed</strong> — All Rights Reserved</p>
+            <p class="small mb-0">
+                <i class="bi bi-envelope-fill me-2"></i>telemed@gmail.com |
+                <i class="bi bi-telephone-fill me-2"></i>+8801701554707
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+        (function () {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggleSidebar');
+
+            // Mobile toggle: add/remove .open to show/hide sidebar
+            toggleBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('open');
+            });
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function (e) {
+                if (window.innerWidth <= 900) {
+                    const clickedInside = sidebar.contains(e.target) || toggleBtn.contains(e.target);
+                    if (!clickedInside) sidebar.classList.remove('open');
+                }
+            });
+
+            // Reset open state on resize
+            window.addEventListener('resize', function () {
+                if (window.innerWidth > 900) {
+                    sidebar.classList.remove('open');
+                }
+            });
+        })();
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
