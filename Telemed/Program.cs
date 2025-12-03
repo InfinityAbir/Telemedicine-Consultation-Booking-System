@@ -42,7 +42,6 @@ builder.Services.AddControllersWithViews();
 // Add BackupService only if enabled in configuration
 if (builder.Configuration.GetValue<bool>("DatabaseBackup:Enabled"))
 {
-    // confirm this namespace/class exists in your project
     builder.Services.AddHostedService<TelemedSystem.Services.BackupService>();
 }
 

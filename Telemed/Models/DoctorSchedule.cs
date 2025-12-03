@@ -32,7 +32,8 @@ namespace Telemed.Models
         [Url]
         public string VideoCallLink { get; set; }
 
-        public bool IsApproved { get; set; } = false;
+        // ✅ No admin approval needed: schedules are active immediately
+        public bool IsApproved { get; set; } = true;
 
         [NotMapped]
         public double SlotDurationMinutes => (EndTime - StartTime).TotalMinutes / MaxPatientsPerDay;

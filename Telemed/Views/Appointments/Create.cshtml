@@ -251,12 +251,9 @@
     }
 
     @@keyframes spin {
-        to
-
-    {
-        transform: rotate(360deg);
-    }
-
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .helper-text {
@@ -266,26 +263,23 @@
     }
 
     @@media (max-width: 640px) {
-        .appointment-container
+        .appointment-container {
+            margin: 1rem;
+            border-radius: 12px;
+        }
 
-    {
-        margin: 1rem;
-        border-radius: 12px;
-    }
+        .appointment-header,
+        .appointment-body {
+            padding: 1.5rem;
+        }
 
-    .appointment-header,
-    .appointment-body {
-        padding: 1.5rem;
-    }
+        .time-slots-grid {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
 
-    .time-slots-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    }
-
-    .action-buttons {
-        flex-direction: column;
-    }
-
+        .action-buttons {
+            flex-direction: column;
+        }
     }
 </style>
 
@@ -296,7 +290,9 @@
     </div>
 
     <div class="appointment-body">
-        <form asp-controller="Payments" asp-action="BookAppointment" method="post" id="appointmentForm">
+        <!-- ✅ Post to Appointments/Create so it can create appointment + payment + redirect -->
+        <form asp-controller="Appointments" asp-action="Create" method="post" id="appointmentForm">
+            @Html.AntiForgeryToken()
 
             <!-- Doctor Selection -->
             <div class="form-section">
@@ -309,7 +305,8 @@
 
                 @if (isDoctorLocked)
                 {
-                    <select id="DoctorId" name="doctorId" class="modern-select" disabled>
+                    <!-- name must match model property: DoctorId -->
+                    <select id="DoctorId" name="DoctorId" class="modern-select" disabled>
                         @foreach (var doc in doctors)
                         {
                             if (selectedDoctorId == doc.DoctorId)
@@ -322,11 +319,11 @@
                             }
                         }
                     </select>
-                    <input type="hidden" name="doctorId" value="@selectedDoctorId" />
+                    <input type="hidden" name="DoctorId" value="@selectedDoctorId" />
                 }
                 else
                 {
-                    <select id="DoctorId" name="doctorId" class="modern-select" required>
+                    <select id="DoctorId" name="DoctorId" class="modern-select" required>
                         <option value="">Choose a doctor from the list</option>
                         @foreach (var doc in doctors)
                         {
@@ -362,6 +359,8 @@
                     </div>
                 </div>
                 <div id="slotStatus" class="status-message"></div>
+
+                <!-- just for debugging/extra info, not required by controller -->
                 <input type="hidden" id="TimeSlot" name="timeSlot" />
             </div>
 
@@ -391,8 +390,9 @@
                 <span asp-validation-for="PatientNote" class="text-danger"></span>
             </div>
 
-            <!-- Hidden field to store full datetime -->
-            <input type="hidden" name="scheduledAt" id="ScheduledAt" />
+            <!-- Hidden field to store full datetime for model.ScheduledAt -->
+            <!-- name must match model property: ScheduledAt -->
+            <input type="hidden" name="ScheduledAt" id="ScheduledAt" />
 
             <div class="action-buttons">
                 <button type="submit" class="btn-primary-modern">Confirm Appointment</button>
@@ -424,14 +424,19 @@
                 const date = dateInput.value;
 
                 if (!doctorId || !date) {
-                    slotsContainer.innerHTML = '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default; color: var(--text-secondary);">Select a doctor and date to view available slots</div>';
+                    slotsContainer.innerHTML =
+                        '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default; color: var(--text-secondary);">' +
+                        'Select a doctor and date to view available slots</div>';
                     return;
                 }
 
-                slotsContainer.innerHTML = '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default;"><span class="loading-spinner"></span> Loading available slots...</div>';
+                slotsContainer.innerHTML =
+                    '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default;">' +
+                    '<span class="loading-spinner"></span> Loading available slots...</div>';
                 slotStatus.className = 'status-message';
                 feeDisplay.textContent = '-';
                 hiddenSlot.value = '';
+                hiddenDateTime.value = '';
 
                 try {
                     const response = await fetch(`/Appointments/GetAvailableSlots?doctorId=${doctorId}&date=${date}`);
@@ -440,7 +445,9 @@
                     slotsContainer.innerHTML = '';
 
                     if (!data.success || !data.slots || data.slots.length === 0) {
-                        slotsContainer.innerHTML = '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default; color: #DC2626;">No available slots for this date</div>';
+                        slotsContainer.innerHTML =
+                            '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default; color: #DC2626;">' +
+                            'No available slots for this date</div>';
                         slotStatus.textContent = data.message || 'Please try another date';
                         slotStatus.className = 'status-message show error';
                         return;
@@ -453,14 +460,32 @@
                         btn.textContent = time;
                         btn.dataset.time = time;
 
-                        btn.addEventListener("click", function() {
-                            document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+                        btn.addEventListener("click", function () {
+                            document
+                                .querySelectorAll('.time-slot-btn')
+                                .forEach(b => b.classList.remove('selected'));
+
                             this.classList.add('selected');
                             hiddenSlot.value = time;
 
                             const date = dateInput.value;
                             if (date && time) {
-                                hiddenDateTime.value = `${date}T${time}`;
+                                // time is like "10:30 AM" → convert to 24h "HH:mm" for ScheduledAt
+                                const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+                                if (match) {
+                                    let hour = parseInt(match[1], 10);
+                                    const minutes = match[2];
+                                    const ampm = match[3].toUpperCase();
+
+                                    if (ampm === "PM" && hour < 12) hour += 12;
+                                    if (ampm === "AM" && hour === 12) hour = 0;
+
+                                    const hourStr = hour.toString().padStart(2, "0");
+                                    hiddenDateTime.value = `${date}T${hourStr}:${minutes}`;
+                                } else {
+                                    // Fallback: assume already "HH:mm"
+                                    hiddenDateTime.value = `${date}T${time}`;
+                                }
                             }
                         });
 
@@ -472,7 +497,9 @@
                     slotStatus.className = 'status-message show info';
 
                 } catch (err) {
-                    slotsContainer.innerHTML = '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default; color: #DC2626;">Error loading slots</div>';
+                    slotsContainer.innerHTML =
+                        '<div class="time-slot-btn" style="grid-column: 1 / -1; cursor: default; color: #DC2626;">' +
+                        'Error loading slots</div>';
                     slotStatus.textContent = 'Please try again later';
                     slotStatus.className = 'status-message show error';
                 }
@@ -482,8 +509,8 @@
             dateInput.addEventListener("change", loadSlots);
 
             // Form validation
-            document.getElementById("appointmentForm").addEventListener("submit", function(e) {
-                if (!hiddenSlot.value) {
+            document.getElementById("appointmentForm").addEventListener("submit", function (e) {
+                if (!hiddenSlot.value || !hiddenDateTime.value) {
                     e.preventDefault();
                     slotStatus.textContent = 'Please select a time slot';
                     slotStatus.className = 'status-message show error';

@@ -117,6 +117,7 @@ public class AppointmentsController : Controller
                 .Where(d => d.IsApproved)
                 .Select(d => new { d.DoctorId, FullName = d.User.FullName, d.ConsultationFee })
                 .ToListAsync();
+
             ViewBag.Doctors = doctors;
             return View(model);
         }
@@ -135,8 +136,7 @@ public class AppointmentsController : Controller
         var schedule = await _context.DoctorSchedules
             .FirstOrDefaultAsync(s =>
                 s.DoctorId == model.DoctorId &&
-                s.Date == requestedDhaka.Date &&
-                s.IsApproved);
+                s.Date == requestedDhaka.Date); // no IsApproved as per your logic
 
         if (schedule == null)
             return Json(new { success = false, message = "Doctor has no schedule on this date." });
@@ -166,15 +166,23 @@ public class AppointmentsController : Controller
         var nearestSlotDhaka = ClipToMinute(scheduleStartDhaka.AddMinutes(slotIndex * slotDuration.TotalMinutes));
         var nearestKey = DhakaSlotKeyFromLocal(nearestSlotDhaka);
 
-        // Load booked appointments for doctor/date, convert their UTC ScheduledAt to Dhaka keys
+        // ---------- FIXED: compute UTC day range for this Dhaka date ----------
+        var dayLocal = schedule.Date.Date;              // Dhaka date of schedule
+        var dayStartUtc = DhakaToUtc(dayLocal);         // 00:00 Dhaka → UTC
+        var dayEndUtc = DhakaToUtc(dayLocal.AddDays(1)); // next day 00:00 Dhaka → UTC
+
+        // Load booked appointments for this doctor on that Dhaka day (in UTC)
         var bookedUtc = await _context.Appointments
-            .Where(a => a.DoctorId == model.DoctorId && a.ScheduledAt.Date == a.ScheduledAt.ToUniversalTime().Date) // placeholder to keep EF happy
+            .Where(a => a.DoctorId == model.DoctorId
+                        && a.ScheduledAt >= dayStartUtc
+                        && a.ScheduledAt < dayEndUtc)
             .Select(a => a.ScheduledAt)
             .ToListAsync();
 
-        // NOTE: above LINQ -> ToListAsync will return UTC DateTimes from DB (likely Kind==Utc or unspecified).
         // Convert each to Dhaka key:
-        var bookedKeys = bookedUtc.Select(u => DhakaSlotKeyFromUtc(u)).ToHashSet();
+        var bookedKeys = bookedUtc
+            .Select(u => DhakaSlotKeyFromUtc(u))
+            .ToHashSet();
 
         if (bookedKeys.Contains(nearestKey))
         {
@@ -214,8 +222,10 @@ public class AppointmentsController : Controller
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync();
 
-        return RedirectToAction("Details", "Payments", new { id = payment.PaymentId });
+        // ✅ Always go straight to Stripe payment UI
+        return RedirectToAction("StartPayment", "Payments", new { appointmentId = appointment.AppointmentId });
     }
+
 
     [Authorize(Roles = "Patient")]
     [HttpGet]
@@ -234,13 +244,6 @@ public class AppointmentsController : Controller
             .OrderByDescending(a => a.ScheduledAt)
             .ToListAsync();
 
-        // Convert appointments' ScheduledAt UTC -> Dhaka when needed in views
-        // (Prefer converting in the view model / view, but you can also set a helper property on the model)
-        // ... keep rest of logic same as before ...
-        // (For brevity, I'll leave the schedule-fixing logic as in your original code)
-        // You can use UtcToDhaka(appointment.ScheduledAt) when showing times.
-
-        // rest of your original Index logic (schedules, payments, feedback, viewmodel)
         var missingScheduleIds = appointments
             .Where(a => a.Schedule == null && a.ScheduleId.HasValue)
             .Select(a => a.ScheduleId!.Value)
@@ -270,7 +273,7 @@ public class AppointmentsController : Controller
             foreach (var pair in doctorDatePairs)
             {
                 var s = await _context.DoctorSchedules
-                    .Where(x => x.DoctorId == pair.DoctorId && x.Date == pair.Date && x.IsApproved)
+                    .Where(x => x.DoctorId == pair.DoctorId && x.Date == pair.Date) // no IsApproved
                     .OrderByDescending(x => x.ScheduleId)
                     .FirstOrDefaultAsync();
 
@@ -321,7 +324,7 @@ public class AppointmentsController : Controller
         return View(model);
     }
 
-    // ---------- DOCTOR ACTIONS (unchanged logic) ----------
+    // ---------- DOCTOR ACTIONS ----------
     [Authorize(Roles = "Doctor")]
     [HttpGet]
     public async Task<IActionResult> DoctorIndex()
@@ -366,8 +369,7 @@ public class AppointmentsController : Controller
         var schedule = await _context.DoctorSchedules
             .FirstOrDefaultAsync(s =>
                 s.DoctorId == appointment.DoctorId &&
-                s.Date == appointment.ScheduledAt.ToUniversalTime().Date &&
-                s.IsApproved);
+                s.Date == appointment.ScheduledAt.ToUniversalTime().Date); // no IsApproved
 
         if (schedule != null)
             appointment.ScheduleId = schedule.ScheduleId;
@@ -437,8 +439,7 @@ public class AppointmentsController : Controller
             var schedule = await _context.DoctorSchedules
                 .FirstOrDefaultAsync(s =>
                     s.DoctorId == appointment.DoctorId &&
-                    s.Date == appointment.ScheduledAt.ToUniversalTime().Date &&
-                    s.IsApproved);
+                    s.Date == appointment.ScheduledAt.ToUniversalTime().Date); // no IsApproved
 
             if (schedule != null)
             {
@@ -485,7 +486,7 @@ public class AppointmentsController : Controller
         else
         {
             var schedule = await _context.DoctorSchedules
-                .FirstOrDefaultAsync(s => s.DoctorId == appointment.DoctorId && s.Date == appointment.ScheduledAt.ToUniversalTime().Date && s.IsApproved);
+                .FirstOrDefaultAsync(s => s.DoctorId == appointment.DoctorId && s.Date == appointment.ScheduledAt.ToUniversalTime().Date); // no IsApproved
             if (schedule != null)
             {
                 var totalMinutes = (schedule.EndTime - schedule.StartTime).TotalMinutes;
@@ -568,10 +569,10 @@ public class AppointmentsController : Controller
         var requestedDate = date.Date;
 
         var schedule = await _context.DoctorSchedules
-            .FirstOrDefaultAsync(s => s.DoctorId == doctorId && s.Date == requestedDate && s.IsApproved);
+            .FirstOrDefaultAsync(s => s.DoctorId == doctorId && s.Date == requestedDate); // no IsApproved
 
         if (schedule == null)
-            return Json(new { success = false, message = "Doctor has no approved schedule on this date." });
+            return Json(new { success = false, message = "Doctor has no schedule on this date." });
 
         if (schedule.EndTime <= schedule.StartTime)
             return Json(new { success = false, message = "Invalid schedule: End time must be after start time." });
@@ -606,7 +607,7 @@ public class AppointmentsController : Controller
 
         var availableSlots = slotsDhaka
             .Where(s => !bookedKeys.Contains(DhakaSlotKeyFromLocal(s)))
-            .Select(s => s.ToString("HH:mm"))
+            .Select(s => s.ToString("hh:mm tt"))
             .ToList();
 
         if (!availableSlots.Any())

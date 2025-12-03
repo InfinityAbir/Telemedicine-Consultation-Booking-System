@@ -96,7 +96,6 @@
         </div>
         <p class="subtitle">Create your account</p>
 
-        @* Show TempData messages (e.g., after registration or when redirected from confirm) *@
         @if (TempData["Message"] != null)
         {
             <div class="alert alert-info">@TempData["Message"]</div>
@@ -115,6 +114,27 @@
                 <label asp-for="Email" class="form-label fw-semibold"></label>
                 <input asp-for="Email" type="email" class="form-control" placeholder="Enter your email" />
                 <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            @* ID Type *@
+            <div class="text-start mb-3">
+                <label asp-for="IdType" class="form-label fw-semibold"></label>
+                <select asp-for="IdType" class="form-select" id="idType">
+                    <option value="">Select ID type</option>
+                    <option value="NID">National ID (NID)</option>
+                    <option value="Passport">Passport</option>
+                </select>
+                <span asp-validation-for="IdType" class="text-danger"></span>
+            </div>
+
+            @* ID Number *@
+            <div class="text-start mb-3">
+                <label asp-for="IdNumber" class="form-label fw-semibold"></label>
+                <input asp-for="IdNumber"
+                       class="form-control"
+                       id="idNumber"
+                       placeholder="Enter your NID or passport number" />
+                <span asp-validation-for="IdNumber" class="text-danger"></span>
             </div>
 
             <div class="text-start mb-3">
@@ -218,5 +238,39 @@
 
         registerAs.addEventListener("change", toggleFields);
         toggleFields();
+
+        // 🔹 ID type & number behavior
+        const idType = document.getElementById("idType");
+        const idNumber = document.getElementById("idNumber");
+
+        function updateIdField() {
+            if (!idType || !idNumber) return;
+
+            if (idType.value === "NID") {
+                idNumber.placeholder = "Enter your NID (10, 13, or 17 digits)";
+                idNumber.setAttribute("maxlength", "17"); // max smart NID length
+            } else if (idType.value === "Passport") {
+                idNumber.placeholder = "Enter your passport number";
+                idNumber.removeAttribute("maxlength");
+            } else {
+                idNumber.placeholder = "Enter your NID or passport number";
+                idNumber.removeAttribute("maxlength");
+            }
+        }
+
+        if (idType) {
+            idType.addEventListener("change", updateIdField);
+        }
+
+        if (idNumber) {
+            idNumber.addEventListener("input", function () {
+                if (idType && idType.value === "NID") {
+                    // Digits only for NID
+                    this.value = this.value.replace(/\D/g, "");
+                }
+            });
+        }
+
+        updateIdField();
     </script>
 }

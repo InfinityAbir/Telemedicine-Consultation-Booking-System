@@ -161,13 +161,24 @@ namespace Telemed.Controllers
                 return View(model);
             }
 
+            // 🔹 Map string IdType -> enum, and set IdNumber
+            var idTypeEnum = IdType.NID;
+            if (!string.IsNullOrWhiteSpace(model.IdType) &&
+                model.IdType.Equals("Passport", StringComparison.OrdinalIgnoreCase))
+            {
+                idTypeEnum = IdType.Passport;
+            }
+
             var user = new ApplicationUser
             {
                 FullName = model.FullName,
                 Email = email,
                 UserName = email,
                 PhoneNumber = string.IsNullOrEmpty(normalizedPhone) ? null : normalizedPhone, // store normalized digits
-                Address = model.Bio
+                Address = model.Bio,
+
+                IdType = idTypeEnum,
+                IdNumber = model.IdNumber?.Trim() ?? string.Empty
             };
 
             var createResult = await _userManager.CreateAsync(user, model.Password);
@@ -288,6 +299,10 @@ namespace Telemed.Controllers
             user.Address = model.Address;
             user.PhoneNumber = model.PhoneNumber;
 
+            // 🔹 Update ID fields as well
+            user.IdType = model.IdType;
+            user.IdNumber = model.IdNumber?.Trim() ?? string.Empty;
+
             if (!string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
             {
                 user.Email = model.Email;
@@ -315,6 +330,7 @@ namespace Telemed.Controllers
             TempData["Message"] = result.Succeeded ? "Profile updated successfully!" : "Failed to update profile.";
             return RedirectToAction("Profile");
         }
+
 
         // ---------------- PROFILE IMAGE ----------------
         [HttpPost]

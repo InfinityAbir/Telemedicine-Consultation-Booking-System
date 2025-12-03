@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Telemed; // for StripeSettings (if you put StripeSettings.cs in Telemed namespace)
+using Telemed; // for StripeSettings
 using Telemed.Models;
 using Telemed.Payments; // for CreatePaymentDto
 using Telemed.Services; // for IInvoiceService, IEmailSenderExtended and TimeZoneHelper
@@ -78,6 +78,23 @@ namespace Telemed.Controllers
             return View(payments);
         }
 
+        // -------------------- PAYMENT DETAILS → REDIRECT TO STARTPAYMENT --------------------
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> Details(int id)
+        {
+            // id is PaymentId
+            var payment = await _context.Payments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.PaymentId == id);
+
+            if (payment == null)
+                return NotFound();
+
+            // Always route any "Details" link to StartPayment of this appointment
+            return RedirectToAction("StartPayment", new { appointmentId = payment.AppointmentId });
+        }
+
         // -------------------- START PAYMENT (for Patients only) --------------------
         [Authorize(Roles = "Patient")]
         public async Task<IActionResult> StartPayment(int appointmentId)
@@ -109,7 +126,7 @@ namespace Telemed.Controllers
 
             ViewBag.Invoice = invoice; // may be null
 
-            // --- NEW: format scheduled time for display in Dhaka timezone ---
+            // Format scheduled time for display in Dhaka timezone
             var appt = payment.Appointment;
             if (appt != null)
             {
@@ -181,10 +198,10 @@ namespace Telemed.Controllers
                     Currency = currency,
                     ReceiptEmail = receiptEmail,
                     Metadata = new Dictionary<string, string>
-            {
-                { "appointment_id", appointmentId.ToString() },
-                { "payment_id", paymentEntity?.PaymentId.ToString() ?? "" }
-            }
+                    {
+                        { "appointment_id", appointmentId.ToString() },
+                        { "payment_id", paymentEntity?.PaymentId.ToString() ?? "" }
+                    }
                 };
 
                 var intent = await service.CreateAsync(options);
@@ -227,12 +244,24 @@ namespace Telemed.Controllers
 
             if (payment == null) return NotFound();
 
-            // mark payment complete
+            // 🔹 Mark payment complete
             payment.Status = PaymentStatus.Paid;
             payment.PaymentDate = DateTime.UtcNow;
 
+            // 🔹 Sync status + money onto the Appointment entity too
             if (payment.Appointment != null)
-                payment.Appointment.Status = AppointmentStatus.Completed;
+            {
+                var appt = payment.Appointment;
+
+                // business status
+                appt.Status = AppointmentStatus.Completed;
+
+                // money fields on Appointment (used by your report)
+                appt.Amount = payment.Amount;                 // same amount as Payment
+                appt.PaymentStatus = "Paid";                  // this is the string your report uses
+                appt.TransactionId = payment.StripePaymentIntentId
+                                     ?? payment.PaymentId.ToString(); // fallback transaction id
+            }
 
             _context.Payments.Update(payment);
             await _context.SaveChangesAsync();
@@ -302,46 +331,46 @@ namespace Telemed.Controllers
 
 
                     string consultationHtml = $@"
-    <table style='border-collapse:collapse; width:100%; max-width:600px; font-family: Arial, Helvetica, sans-serif;'>
-        <tr>
-            <td style='padding:8px; border:1px solid #e9e9e9; width:170px; font-weight:600;'>Doctor</td>
-            <td style='padding:8px; border:1px solid #e9e9e9;'>{System.Net.WebUtility.HtmlEncode(doctorName)}</td>
-        </tr>
-        <tr>
-            <td style='padding:8px; border:1px solid #e9e9e9; font-weight:600;'>Date</td>
-            <td style='padding:8px; border:1px solid #e9e9e9;'>{System.Net.WebUtility.HtmlEncode(scheduledDate)}</td>
-        </tr>
-        <tr>
-            <td style='padding:8px; border:1px solid #e9e9e9; font-weight:600;'>Time</td>
-            <td style='padding:8px; border:1px solid #e9e9e9;'>{System.Net.WebUtility.HtmlEncode(scheduledTime)}</td>
-        </tr>
-        <tr>
-            <td style='padding:8px; border:1px solid #e9e9e9; font-weight:600;'>Appointment ID</td>
-            <td style='padding:8px; border:1px solid #e9e9e9;'>{invoice.AppointmentId}</td>
-        </tr>
-    </table>
+<table style='border-collapse:collapse; width:100%; max-width:600px; font-family: Arial, Helvetica, sans-serif;'>
+    <tr>
+        <td style='padding:8px; border:1px solid #e9e9e9; width:170px; font-weight:600;'>Doctor</td>
+        <td style='padding:8px; border:1px solid #e9e9e9;'>{System.Net.WebUtility.HtmlEncode(doctorName)}</td>
+    </tr>
+    <tr>
+        <td style='padding:8px; border:1px solid #e9e9e9; font-weight:600;'>Date</td>
+        <td style='padding:8px; border:1px solid #e9e9e9;'>{System.Net.WebUtility.HtmlEncode(scheduledDate)}</td>
+    </tr>
+    <tr>
+        <td style='padding:8px; border:1px solid #e9e9e9; font-weight:600;'>Time</td>
+        <td style='padding:8px; border:1px solid #e9e9e9;'>{System.Net.WebUtility.HtmlEncode(scheduledTime)}</td>
+    </tr>
+    <tr>
+        <td style='padding:8px; border:1px solid #e9e9e9; font-weight:600;'>Appointment ID</td>
+        <td style='padding:8px; border:1px solid #e9e9e9;'>{invoice.AppointmentId}</td>
+    </tr>
+</table>
 ";
 
                     // Full email HTML body (logo optional)
                     var emailHtml = $@"
-    <div style='font-family: Arial, Helvetica, sans-serif; color:#222; font-size:14px;'>
-                        <div style='display:flex; align-items:center; gap:10px; margin-bottom:10px;'>
-                                <span style=""font-size:28px;"">❤️</span>
-                                <h2 style='margin:0; font-size:20px; font-weight:600;'>TeleMed — Consultation Invoice</h2>
-                         </div>
-        <p>Dear {System.Net.WebUtility.HtmlEncode(invoice.PatientName)},</p>
-
-        <p>Thank you for your payment. Your invoice number is <strong>{invoice.InvoiceNumber}</strong>.</p>
-
-        <p><strong>Consultation details</strong></p>
-        {consultationHtml}
-
-        <p>You can download the invoice from <a href='{downloadLink}'>this link</a> or find the attached PDF file.</p>
-
-        <p>If you need help, reply to this email.</p>
-
-        <p>Regards,<br/>Telemed Team</p>
+<div style='font-family: Arial, Helvetica, sans-serif; color:#222; font-size:14px;'>
+    <div style='display:flex; align-items:center; gap:10px; margin-bottom:10px;'>
+        <span style=""font-size:28px;"">❤️</span>
+        <h2 style='margin:0; font-size:20px; font-weight:600;'>TeleMed — Consultation Invoice</h2>
     </div>
+    <p>Dear {System.Net.WebUtility.HtmlEncode(invoice.PatientName)},</p>
+
+    <p>Thank you for your payment. Your invoice number is <strong>{invoice.InvoiceNumber}</strong>.</p>
+
+    <p><strong>Consultation details</strong></p>
+    {consultationHtml}
+
+    <p>You can download the invoice from <a href='{downloadLink}'>this link</a> or find the attached PDF file.</p>
+
+    <p>If you need help, reply to this email.</p>
+
+    <p>Regards,<br/>Telemed Team</p>
+</div>
 ";
 
                     // Send email with attachment — do not crash payment if email fails
@@ -352,23 +381,21 @@ namespace Telemed.Controllers
                         else
                             TempData["Info"] = "Invoice created but patient email is missing; cannot send email.";
                     }
-                    catch (Exception emailEx)
+                    catch (Exception)
                     {
-                        // log email failure (if you have logger, log it). For now, store a temp message
                         TempData["Info"] = "Payment succeeded but sending invoice email failed.";
-                        // Optionally log: Console.WriteLine(emailEx);
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // If invoice generation fails, do not rollback payment — but notify admin or log.
                 TempData["Info"] = "Payment processed but invoice generation failed.";
-                // Optionally log: Console.WriteLine(ex);
             }
 
+            // Keep user on StartPayment page for that appointment
             return RedirectToAction("StartPayment", new { appointmentId = payment.AppointmentId });
         }
+
 
 
         // -------------------- CREATE PAYMENT FOR APPOINTMENT --------------------

@@ -144,7 +144,10 @@
         {
             @foreach (var schedule in Model)
             {
-                // add classes for easy DOM updates: .col-starttime, .col-endtime, .col-maxpatients
+                var startDateTime = schedule.Date.Add(schedule.StartTime);
+                var endDateTime = schedule.Date.Add(schedule.EndTime);
+
+                // data-* (for JS / <input type="time">) keeps 24h format "HH:mm"
                 <div class="schedule-card"
                      data-schedule-id="@schedule.ScheduleId"
                      data-start="@schedule.StartTime.ToString(@"hh\:mm")"
@@ -153,9 +156,19 @@
 
                     <div class="schedule-header">@schedule.Date.ToString("dddd, MMM dd yyyy")</div>
 
-                    <div class="schedule-detail"><strong>Start Time:</strong> <span class="col-starttime">@schedule.StartTime.ToString(@"hh\:mm")</span></div>
-                    <div class="schedule-detail"><strong>End Time:</strong> <span class="col-endtime">@schedule.EndTime.ToString(@"hh\:mm")</span></div>
-                    <div class="schedule-detail"><strong>Max Patients:</strong> <span class="col-maxpatients">@schedule.MaxPatientsPerDay</span></div>
+                    <!-- Display 12-hour format with AM/PM -->
+                    <div class="schedule-detail">
+                        <strong>Start Time:</strong>
+                        <span class="col-starttime">@startDateTime.ToString("hh:mm tt")</span>
+                    </div>
+                    <div class="schedule-detail">
+                        <strong>End Time:</strong>
+                        <span class="col-endtime">@endDateTime.ToString("hh:mm tt")</span>
+                    </div>
+                    <div class="schedule-detail">
+                        <strong>Max Patients:</strong>
+                        <span class="col-maxpatients">@schedule.MaxPatientsPerDay</span>
+                    </div>
 
                     <div class="mt-2">
                         <span class="@(schedule.IsApproved ? "status-approved" : "status-pending")">
@@ -251,6 +264,24 @@
             return h * 60 + m;
         }
 
+        // Convert "HH:mm" -> "hh:mm AM/PM" for display
+        function formatTo12Hour(timeStr) {
+            if (!timeStr) return '';
+            const parts = timeStr.split(':');
+            if (parts.length < 2) return timeStr;
+            let hours = parseInt(parts[0], 10);
+            const minutes = parseInt(parts[1], 10);
+            if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeStr;
+
+            const suffix = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            if (hours === 0) hours = 12;
+
+            const hh = hours.toString().padStart(2, '0');
+            const mm = minutes.toString().padStart(2, '0');
+            return `${hh}:${mm} ${suffix}`;
+        }
+
         function computeAllowed(startTimeStr, endTimeStr) {
             const s = parseTimeToMinutes(startTimeStr);
             const e = parseTimeToMinutes(endTimeStr);
@@ -280,7 +311,6 @@
                   </div>
                 </div>`;
             container.insertAdjacentHTML('beforeend', toastHtml);
-            // auto dismiss after 3s
             setTimeout(() => {
                 const tEl = document.getElementById(toastId);
                 if (tEl) tEl.remove();
@@ -309,13 +339,14 @@
             modal.show();
         };
 
-        // update allowed display in modal
         function updateEditAllowedDisplay() {
             const s = document.getElementById('editStartTime').value;
             const e = document.getElementById('editEndTime').value;
             const allowed = computeAllowed(s, e);
             const help = document.getElementById('editMaxHelp');
-            help.textContent = allowed > 0 ? `Allowed per day: ${allowed} patient${allowed !== 1 ? 's' : ''} (min ${MIN_MINUTES_PER_PATIENT} min each)` : 'Allowed per day: choose valid start and end times.';
+            help.textContent = allowed > 0
+                ? `Allowed per day: ${allowed} patient${allowed !== 1 ? 's' : ''} (min ${MIN_MINUTES_PER_PATIENT} min each)`
+                : 'Allowed per day: choose valid start and end times.';
         }
 
         ['editStartTime', 'editEndTime'].forEach(id => {
@@ -338,7 +369,6 @@
                 const endTime = document.getElementById('editEndTime').value;
                 const maxPatients = parseInt(document.getElementById('editMaxPatients').value || '0', 10);
 
-                // client-side mirroring validation
                 if (!startTime || !endTime) {
                     showModalAlert('Please provide start and end times.', 'danger');
                     return;
@@ -361,10 +391,7 @@
                     return;
                 }
 
-                // prepare formData (includes antiforgery token hidden input)
                 const fd = new FormData(editForm);
-
-                // set button disabled
                 const submitBtn = document.getElementById('editSubmitBtn');
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Saving...';
@@ -376,43 +403,42 @@
                         body: fd
                     });
 
-                    // try parse json
                     const json = await res.json().catch(() => null);
 
                     if (json && typeof json === 'object') {
                         if (json.success) {
                             showToast(json.message || 'Schedule updated', 'success');
-                            // update the card in-place
+
                             const card = document.querySelector(`.schedule-card[data-schedule-id="${scheduleId}"]`);
                             if (card) {
                                 const startEl = card.querySelector('.col-starttime');
                                 const endEl = card.querySelector('.col-endtime');
                                 const maxEl = card.querySelector('.col-maxpatients');
-                                if (startEl) startEl.textContent = startTime;
-                                if (endEl) endEl.textContent = endTime;
+
+                                const displayStart = formatTo12Hour(startTime);
+                                const displayEnd = formatTo12Hour(endTime);
+
+                                if (startEl) startEl.textContent = displayStart;
+                                if (endEl) endEl.textContent = displayEnd;
                                 if (maxEl) maxEl.textContent = maxPatients;
 
-                                // update data attributes
                                 card.setAttribute('data-start', startTime);
                                 card.setAttribute('data-end', endTime);
                                 card.setAttribute('data-max', maxPatients);
                             }
-                            // hide modal after short delay
+
                             setTimeout(() => {
                                 const modalEl = document.getElementById('editModal');
                                 const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                                 modalInstance.hide();
                             }, 550);
                         } else {
-                            // server-side validation error
                             showModalAlert(json.message || 'Validation failed', 'danger');
-                            // if controller returned allowed value, show it in help
                             if (json.allowed !== undefined && json.allowed !== null) {
                                 document.getElementById('editMaxHelp').textContent = `Allowed per day: ${json.allowed}`;
                             }
                         }
                     } else {
-                        // non-json response (maybe redirect) -> fallback reload
                         window.location.reload();
                     }
                 } catch (err) {

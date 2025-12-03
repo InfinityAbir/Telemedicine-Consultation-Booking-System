@@ -4,6 +4,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Telemed.Models
 {
+    public enum IdType
+    {
+        NID = 0,
+        Passport = 1
+    }
+
     public class ApplicationUser : IdentityUser
     {
         [StringLength(100)]
@@ -26,5 +32,15 @@ namespace Telemed.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
+
+        // ---------------- NEW FIELDS ----------------
+
+        [Required]
+        public IdType IdType { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        [Display(Name = "NID / Passport Number")]
+        public string IdNumber { get; set; } = string.Empty;
     }
 }

@@ -112,7 +112,8 @@ namespace Telemed.Controllers
                     StartTime = startTime,
                     EndTime = endTime,
                     MaxPatientsPerDay = model.MaxPatientsPerDay,
-                    IsApproved = false,
+                    // ✅ No admin approval: schedule is active immediately
+                    IsApproved = true,
                     VideoCallLink = model.VideoCallLink
                 };
 
@@ -120,7 +121,7 @@ namespace Telemed.Controllers
             }
 
             await _context.SaveChangesAsync();
-            TempData["Message"] = "Schedules created successfully and pending admin approval.";
+            TempData["Message"] = "Schedules created successfully.";
             return RedirectToAction("MySchedules");
         }
 
@@ -164,12 +165,14 @@ namespace Telemed.Controllers
             schedule.StartTime = StartTime;
             schedule.EndTime = EndTime;
             schedule.MaxPatientsPerDay = MaxPatientsPerDay;
-            schedule.IsApproved = false; // Re-approve after edit
+
+            // ✅ Keep schedule usable without any re-approval step
+            schedule.IsApproved = true;
 
             _context.Update(schedule);
             await _context.SaveChangesAsync();
 
-            var successMsg = "Schedule updated successfully and sent for re-approval.";
+            var successMsg = "Schedule updated successfully.";
             if (IsAjaxRequest()) return Json(new { success = true, message = successMsg });
             TempData["Message"] = successMsg;
             return RedirectToAction("MySchedules");
@@ -181,7 +184,6 @@ namespace Telemed.Controllers
             if (Request == null) return false;
             return Request.Headers != null && Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         }
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -208,31 +210,6 @@ namespace Telemed.Controllers
             return RedirectToAction("MySchedules");
         }
 
-
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Pending()
-        {
-            var pending = await _context.DoctorSchedules
-                .Include(s => s.Doctor).ThenInclude(d => d.User)
-                .Where(s => !s.IsApproved)
-                .ToListAsync();
-
-            return View(pending);
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
-        public async Task<IActionResult> Approve(int id)
-        {
-            var schedule = await _context.DoctorSchedules.FindAsync(id);
-            if (schedule == null) return NotFound();
-
-            schedule.IsApproved = true;
-            _context.Update(schedule);
-            await _context.SaveChangesAsync();
-
-            TempData["Message"] = "Schedule approved successfully.";
-            return RedirectToAction(nameof(Pending));
-        }
+        // ✅ Admin approval actions removed – doctors manage their own schedules
     }
 }
