@@ -88,6 +88,7 @@
 
     <div class="doctor-info"><strong>Specialization:</strong> @Model.Specialization</div>
     <div class="doctor-info"><strong>Qualification:</strong> @Model.Qualification</div>
+    <div class="doctor-info"><strong>BMDC Number:</strong> @Model.BMDCNumber</div>
 
     <!-- 💰 Consultation Fee -->
     <div class="doctor-info">
@@ -113,9 +114,4 @@
             <span class="status-badge status-pending">Pending Approval</span>
         }
     </div>
-
-    @if (User.IsInRole("Admin"))
-    {
-        <a asp-action="Edit" asp-route-id="@Model.DoctorId" class="btn btn-edit">Edit Doctor</a>
-    }
 </div>

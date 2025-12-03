@@ -376,35 +376,29 @@
 
     /* Responsive Design */
     @@media (max-width: 768px) {
-        .doctor-header
+        .doctor-header {
+            font-size: 2.2rem;
+        }
 
-    {
-        font-size: 2.2rem;
-    }
+        .search-bar {
+            flex-direction: column;
+            gap: 12px;
+        }
 
-    .search-bar {
-        flex-direction: column;
-        gap: 12px;
-    }
+        .doctor-container {
+            grid-template-columns: 1fr;
+            padding: 60px 20px;
+        }
 
-    .doctor-container {
-        grid-template-columns: 1fr;
-        padding: 60px 20px;
-    }
-
-    .admin-buttons {
-        grid-template-columns: 1fr;
-    }
-
+        .admin-buttons {
+            grid-template-columns: 1fr;
+        }
     }
 
     @@media (min-width: 769px) and (max-width: 1024px) {
-        .doctor-container
-
-    {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
+        .doctor-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 </style>
 
@@ -464,7 +458,15 @@
                 <div class="card-body-section">
                     <div class="doctor-name">@doctor.User?.FullName</div>
                     <div class="doctor-specialization">@doctor.Specialization</div>
-                    <div class="doctor-qualification">@doctor.Qualification</div>
+                    <div class="doctor-qualification">
+                        @doctor.Qualification
+                        @if (!string.IsNullOrEmpty(doctor.BMDCNumber))
+                        {
+                            <div class="mt-1" style="font-size:0.85rem;color:#6b7280;">
+                                BM&DC Reg: <strong>@doctor.BMDCNumber</strong>
+                            </div>
+                        }
+                    </div>
                 </div>
 
                 <!-- Action Buttons -->
@@ -494,10 +496,21 @@
                     @if (User.IsInRole("Admin"))
                     {
                         <div class="admin-buttons">
-                            <a href="@Url.Action("Edit", "Doctors", new { id = doctor.DoctorId })"
-                               class="btn-admin btn-warning">
+                            <!-- EDIT uses modal -->
+                            <button type="button"
+                                    class="btn-admin btn-warning"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editDoctorModal"
+                                    data-doctor-id="@doctor.DoctorId"
+                                    data-doctor-name="@doctor.User?.FullName"
+                                    data-specialization="@doctor.Specialization"
+                                    data-qualification="@doctor.Qualification"
+                                    data-fee="@doctor.ConsultationFee"
+                                    data-approved="@doctor.IsApproved"
+                                    data-bmdc="@doctor.BMDCNumber">
                                 <i class="bi bi-pencil"></i> Edit
-                            </a>
+                            </button>
+
                             <a href="@Url.Action("Delete", "Doctors", new { id = doctor.DoctorId })"
                                class="btn-admin btn-danger">
                                 <i class="bi bi-trash"></i> Delete
@@ -510,8 +523,95 @@
     }
 </div>
 
+@if (User.IsInRole("Admin"))
+{
+    <!-- Edit Doctor Modal -->
+    <div class="modal fade" id="editDoctorModal" tabindex="-1" aria-labelledby="editDoctorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editDoctorModalLabel">Edit Doctor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- 🔹 Form posts to EditFromModal -->
+                <form id="editDoctorForm" asp-controller="Doctors" asp-action="EditFromModal" method="post">
+                    <div class="modal-body">
+                        @Html.AntiForgeryToken()
+
+                        <!-- must match controller parameter doctorId -->
+                        <input type="hidden" name="doctorId" id="editDoctorId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Doctor Name</label>
+                            <input type="text" id="editDoctorName" class="form-control" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editSpecialization" class="form-label">Specialization</label>
+                            <input type="text"
+                                   name="specialization"
+                                   id="editSpecialization"
+                                   class="form-control"
+                                   placeholder="e.g. Cardiology" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editQualification" class="form-label">Qualification</label>
+                            <input type="text"
+                                   name="qualification"
+                                   id="editQualification"
+                                   class="form-control"
+                                   placeholder="e.g. MBBS, MD" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editBMDCNumber" class="form-label">BM&DC Registration Number</label>
+                            <input type="text"
+                                   name="bmdcNumber"
+                                   id="editBMDCNumber"
+                                   class="form-control"
+                                   placeholder="Enter BM&DC registration number" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editConsultationFee" class="form-label">Consultation Fee (BDT)</label>
+                            <input type="number"
+                                   step="0.01"
+                                   min="0"
+                                   name="consultationFee"
+                                   id="editConsultationFee"
+                                   class="form-control"
+                                   placeholder="e.g. 500" />
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="editIsApproved"
+                                   name="isApproved" />
+                            <label class="form-check-label" for="editIsApproved">Is Approved</label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2-circle"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+}
+
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script>
+        // Reveal animation for cards
         function revealCards() {
             const cards = document.querySelectorAll('.doctor-card');
             const windowHeight = window.innerHeight;
@@ -528,5 +628,32 @@
 
         window.addEventListener('scroll', revealCards);
         window.addEventListener('load', revealCards);
+
+        // Modal population for Edit
+        const editDoctorModal = document.getElementById('editDoctorModal');
+        if (editDoctorModal) {
+            editDoctorModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+
+                const doctorId       = button.getAttribute('data-doctor-id');
+                const doctorName     = button.getAttribute('data-doctor-name');
+                const specialization = button.getAttribute('data-specialization');
+                const qualification  = button.getAttribute('data-qualification');
+                const fee            = button.getAttribute('data-fee');
+                const approvedRaw    = button.getAttribute('data-approved');
+                const bmdc           = button.getAttribute('data-bmdc');
+
+                const approved = approvedRaw === 'True' || approvedRaw === 'true';
+
+                document.getElementById('editDoctorId').value        = doctorId;
+                document.getElementById('editDoctorName').value      = doctorName || '';
+                document.getElementById('editSpecialization').value  = specialization || '';
+                document.getElementById('editQualification').value   = qualification || '';
+                document.getElementById('editConsultationFee').value = fee || '';
+                document.getElementById('editBMDCNumber').value      = bmdc || '';
+                document.getElementById('editIsApproved').checked    = approved;
+            });
+        }
     </script>
 }
