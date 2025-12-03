@@ -6,6 +6,146 @@
     ViewData["Title"] = "Edit Doctor";
 }
 
+<style>
+
+    .form-check.form-switch {
+        padding-left: 0 !important;
+    }
+
+    .form-check-input {
+        cursor: pointer;
+    }
+
+    .edit-page-wrapper {
+        min-height: 70vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 40px 16px;
+        background-color: #f5f7fb;
+    }
+
+    .edit-card {
+        width: 100%;
+        max-width: 640px;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px 24px 20px;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+        border: 1px solid rgba(209, 213, 219, 0.6);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+        .edit-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+        }
+
+    .edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+    }
+
+    .edit-title {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.25rem;
+        color: #111827;
+    }
+
+    .edit-subtitle {
+        font-size: 0.9rem;
+        color: #6b7280;
+    }
+
+    .badge-status {
+        font-size: 0.80rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-weight: 500;
+    }
+
+    .badge-approved {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-pending {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #374151;
+        font-size: 0.9rem;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        border-width: 1.3px;
+        font-size: 0.95rem;
+    }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+            border-color: #3b82f6;
+        }
+
+    .doctor-name-box {
+        background-color: #f9fafb;
+        border-radius: 10px;
+        padding: 10px 14px;
+        border: 1px solid #e5e7eb;
+        font-size: 0.96rem;
+    }
+
+    .form-check.form-switch {
+        padding-left: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-check-label {
+        font-size: 0.9rem;
+        color: #374151;
+    }
+
+    .btn-save {
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.98rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+        .btn-save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(22, 163, 74, 0.35);
+        }
+
+    .btn-back {
+        font-size: 0.85rem;
+        border-radius: 999px;
+        padding-inline: 14px;
+    }
+
+    .validation-summary-errors {
+        margin-bottom: 10px;
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: #fef2f2;
+        color: #b91c1c;
+        font-size: 0.85rem;
+    }
+</style>
+
 @if (!User.IsInRole("Admin"))
 {
     <div class="text-center mt-5">
@@ -15,69 +155,114 @@
 }
 else
 {
-    <div class="container mt-5 mb-5" style="max-width:600px;">
-        <h2 class="text-center mb-4">Edit Doctor</h2>
+    <div class="edit-page-wrapper">
+        <div class="edit-card">
 
-        <form asp-action="Edit" method="post" class="shadow-lg p-4 rounded-4 bg-white">
-            <input type="hidden" asp-for="DoctorId" />
-
-            <!-- Display Doctor Name -->
-            <div class="mb-3">
-                <label class="form-label">Doctor Name</label>
-                <input type="text" class="form-control form-control-lg rounded-pill"
-                       value="@Model.User?.FullName" disabled />
+            <div class="edit-header">
+                <div>
+                    <h2 class="edit-title">Edit Doctor</h2>
+                    <p class="edit-subtitle">
+                        Update doctor profile and consultation details.
+                    </p>
+                </div>
+                <span class="badge-status @(Model.IsApproved ? "badge-approved" : "badge-pending")">
+                    @(Model.IsApproved ? "Approved" : "Pending approval")
+                </span>
             </div>
 
-            <!-- Specialization -->
-            <div class="mb-3">
-                <label asp-for="Specialization" class="form-label">Specialization</label>
-                <input asp-for="Specialization"
-                       class="form-control form-control-lg rounded-pill"
-                       placeholder="e.g. Cardiology" />
-                <span asp-validation-for="Specialization" class="text-danger"></span>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="small text-muted">
+                    Doctor ID: <strong>#@Model.DoctorId</strong>
+                </div>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-back">
+                    <i class="bi bi-arrow-left-short"></i> Back
+                </a>
             </div>
 
-            <!-- Qualification -->
-            <div class="mb-3">
-                <label asp-for="Qualification" class="form-label">Qualification</label>
-                <input asp-for="Qualification"
-                       class="form-control form-control-lg rounded-pill"
-                       placeholder="e.g. MBBS, MD" />
-                <span asp-validation-for="Qualification" class="text-danger"></span>
-            </div>
+            <form asp-action="Edit"
+                  asp-route-id="@Model.DoctorId"
+                  method="post"
+                  class="doctor-edit-form">
 
-            <!-- 💰 Consultation Fee -->
-            <div class="mb-3">
-                <label asp-for="ConsultationFee" class="form-label">Consultation Fee (BDT)</label>
-                <input asp-for="ConsultationFee" type="number" step="0.01" min="0"
-                       class="form-control form-control-lg rounded-pill"
-                       placeholder="e.g. 500" />
-                <span asp-validation-for="ConsultationFee" class="text-danger"></span>
-            </div>
+                <input type="hidden" asp-for="DoctorId" />
+                <input type="hidden" asp-for="UserId" />
 
-            <!-- Is Approved -->
-            <div class="form-check form-switch mb-4">
-                <input asp-for="IsApproved" class="form-check-input" type="checkbox" id="isApproved">
-                <label asp-for="IsApproved" class="form-check-label">Is Approved</label>
-            </div>
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
 
-            <!-- Submit -->
-            <button type="submit"
-                    class="btn btn-success btn-lg w-100 rounded-pill shadow-sm"
-                    style="transition: transform 0.3s;">
-                Save Changes
-            </button>
-        </form>
+                <!-- Doctor Name (read-only) -->
+                <div class="mb-3">
+                    <label class="form-label">Doctor Name</label>
+                    <div class="doctor-name-box">
+                        @Model.User?.FullName
+                    </div>
+                </div>
+
+                <!-- Specialization -->
+                <div class="mb-3">
+                    <label asp-for="Specialization" class="form-label"></label>
+                    <input asp-for="Specialization"
+                           class="form-control"
+                           placeholder="e.g. Cardiology" />
+                    <span asp-validation-for="Specialization" class="text-danger small"></span>
+                </div>
+
+                <!-- Qualification -->
+                <div class="mb-3">
+                    <label asp-for="Qualification" class="form-label"></label>
+                    <input asp-for="Qualification"
+                           class="form-control"
+                           placeholder="e.g. MBBS, MD" />
+                    <span asp-validation-for="Qualification" class="text-danger small"></span>
+                </div>
+
+                <!-- Consultation Fee -->
+                <div class="mb-3">
+                    <label asp-for="ConsultationFee" class="form-label">Consultation Fee (BDT)</label>
+                    <input asp-for="ConsultationFee"
+                           type="number"
+                           step="0.01"
+                           min="0"
+                           class="form-control"
+                           placeholder="e.g. 500" />
+                    <span asp-validation-for="ConsultationFee" class="text-danger small"></span>
+                </div>
+
+                <!-- Is Approved -->
+                <div class="d-flex align-items-center justify-content-between mt-3 mb-4">
+                    <label asp-for="IsApproved" class="form-label mb-0">Is Approved</label>
+
+                    <div class="form-check form-switch m-0">
+                        <input asp-for="IsApproved"
+                               class="form-check-input"
+                               type="checkbox"
+                               id="isApproved">
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-grid mt-2">
+                    <button type="submit"
+                            class="btn btn-success btn-lg btn-save">
+                        <i class="bi bi-check2-circle"></i>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
     </div>
 }
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        document.querySelector("form").addEventListener("submit", function (e) {
-            if (!confirm("Are you sure you want to save changes to this doctor?")) {
-                e.preventDefault();
-            }
-        });
+        const editForm = document.querySelector(".doctor-edit-form");
+        if (editForm) {
+            editForm.addEventListener("submit", function (e) {
+                if (!confirm("Are you sure you want to save changes to this doctor?")) {
+                    e.preventDefault();
+                }
+            });
+        }
     </script>
 }

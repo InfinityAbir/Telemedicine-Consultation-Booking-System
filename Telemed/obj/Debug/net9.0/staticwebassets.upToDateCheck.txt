@@ -35,8 +35,10 @@ wwwroot\invoices\INV-20251130-96A8472B.pdf
 wwwroot\invoices\INV-20251130-C2FBECFC.pdf
 wwwroot\invoices\INV-20251130-E4A68611.pdf
 wwwroot\invoices\INV-20251130-EC94AF3F.pdf
+wwwroot\invoices\INV-20251203-AD43A03D.pdf
 wwwroot\invoices\INV-20251203-B440DE96.pdf
 wwwroot\invoices\INV-20251203-D0038283.pdf
+wwwroot\invoices\INV-20251203-E5CD95BB.pdf
 wwwroot\js\site.js
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css
 wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map

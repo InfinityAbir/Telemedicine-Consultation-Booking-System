@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Telemed")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+47260bcc6f20d28e4d582102c3a0124b16e0a9ec")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b04ba32f5b5cd2e8c20e67f1dbce8453f8ece3da")]
 [assembly: System.Reflection.AssemblyProductAttribute("Telemed")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Telemed")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

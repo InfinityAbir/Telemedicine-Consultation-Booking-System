@@ -19,7 +19,9 @@ namespace Telemed.Controllers
         // GET: Doctors
         public async Task<IActionResult> Index(string searchTerm)
         {
-            var doctorsQuery = _context.Doctors.Include(d => d.User).AsQueryable();
+            var doctorsQuery = _context.Doctors
+                .Include(d => d.User)
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
@@ -38,18 +40,19 @@ namespace Telemed.Controllers
         // GET: Doctors/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+                return NotFound();
 
             var doctor = await _context.Doctors
                 .Include(d => d.User)
                 .FirstOrDefaultAsync(m => m.DoctorId == id);
 
-            if (doctor == null) return NotFound();
+            if (doctor == null)
+                return NotFound();
 
             return View(doctor);
         }
 
-        // GET: Doctors/Create
         // GET: Doctors/Create
         public IActionResult Create()
         {
@@ -59,7 +62,7 @@ namespace Telemed.Controllers
                 .Select(u => new { u.Id, u.FullName })
                 .ToList();
 
-            ViewBag.UserId = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(users, "Id", "FullName");
+            ViewBag.UserId = new SelectList(users, "Id", "FullName");
             return View();
         }
 
@@ -80,14 +83,13 @@ namespace Telemed.Controllers
                 .Where(u => !_context.Doctors.Any(d => d.UserId == u.Id))
                 .Select(u => new { u.Id, u.FullName })
                 .ToList();
-            ViewBag.UserId = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(users, "Id", "FullName", doctor.UserId);
 
+            ViewBag.UserId = new SelectList(users, "Id", "FullName", doctor.UserId);
             return View(doctor);
         }
 
-
         // GET: Doctors/Edit/5
-        // GET: Doctors/Edit/5
+        [HttpGet]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -95,7 +97,7 @@ namespace Telemed.Controllers
 
             // Include the related User object
             var doctor = await _context.Doctors
-                .Include(d => d.User)   // <-- This is required
+                .Include(d => d.User)
                 .FirstOrDefaultAsync(d => d.DoctorId == id);
 
             if (doctor == null)
@@ -104,11 +106,13 @@ namespace Telemed.Controllers
             return View(doctor);
         }
 
-
+        // POST: Doctors/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("DoctorId,UserId,Specialization,Qualification,ConsultationFee,IsApproved")] Doctor doctor)
-
         {
-            if (id != doctor.DoctorId) return NotFound();
+            if (id != doctor.DoctorId)
+                return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -119,35 +123,43 @@ namespace Telemed.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!DoctorExists(doctor.DoctorId)) return NotFound();
-                    else throw;
+                    if (!DoctorExists(doctor.DoctorId))
+                        return NotFound();
+                    else
+                        throw;
                 }
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "FullName");
+
+            ViewData["UserId"] = new SelectList(_context.Users, "Id", "FullName", doctor.UserId);
             return View(doctor);
         }
 
         // GET: Doctors/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+                return NotFound();
 
             var doctor = await _context.Doctors
                 .Include(d => d.User)
                 .FirstOrDefaultAsync(m => m.DoctorId == id);
 
-            if (doctor == null) return NotFound();
+            if (doctor == null)
+                return NotFound();
 
             return View(doctor);
         }
 
+        // POST: Doctors/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var doctor = await _context.Doctors.FindAsync(id);
-            if (doctor != null) _context.Doctors.Remove(doctor);
+            if (doctor != null)
+                _context.Doctors.Remove(doctor);
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
