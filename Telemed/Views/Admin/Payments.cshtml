@@ -176,33 +176,28 @@
         background: linear-gradient(90deg, #f4f7fb, #eef4ff, #f4f7fb);
         background-size: 200% 100%;
     }
+
     @@keyframes pulse {
-        0%
+        0% {
+            background-position: 0% 50%;
+        }
 
-    {
-        background-position: 0% 50%;
-    }
-
-    100% {
-        background-position: 100% 50%;
-    }
-
+        100% {
+            background-position: 100% 50%;
+        }
     }
 
     /* Responsive spacing adjustments */
     @@media (max-width: 767.98px) {
-        .page-head
+        .page-head {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: .6rem;
+        }
 
-    {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: .6rem;
-    }
-
-    .controls-card {
-        padding: 12px;
-    }
-
+        .controls-card {
+            padding: 12px;
+        }
     }
 </style>
 
@@ -226,7 +221,7 @@
     <div class="controls-card mb-4 card-modern">
         <div class="row gx-2 gy-2 align-items-center">
             <div class="col-lg-4 col-md-6">
-                <input id="q" type="search" class="form-control" placeholder="Search: appointment #" />
+                <input id="q" type="search" class="form-control" placeholder="Search: appointment / doctor / patient" />
             </div>
 
             <div class="col-auto">
@@ -276,19 +271,28 @@
                             var idx = 1;
                             foreach (var p in Model)
                             {
-                                var doctorName = p.Appointment?.Doctor?.User?.FullName ?? "-";
+                                var doctorName = p.Appointment?.Doctor?.User?.FullName
+                                ?? p.Appointment?.Doctor?.User?.UserName
+                                ?? "-";
 
-                                <tr class="table-row row-anim" data-status="@p.Status.ToString()"
+                                var patientName = p.Appointment?.Patient?.User?.FullName
+                                ?? p.Appointment?.Patient?.User?.UserName
+                                ?? "-";
+
+                                <tr class="table-row row-anim"
+                                    data-status="@p.Status.ToString()"
                                     data-date="@(p.PaymentDate.HasValue? p.PaymentDate.Value.ToString("yyyy-MM-dd") : "")"
                                     data-appointment="@p.AppointmentId"
                                     data-doctor="@doctorName"
+                                    data-patient="@patientName"
                                     data-id="@p.PaymentId">
 
                                     <td class="ps-4">@idx</td>
 
                                     <td>
                                         <div class="fw-semibold">Appointment #@p.AppointmentId</div>
-                                        <div class="small muted-sm">@doctorName</div>
+                                        <div class="small muted-sm">Doctor: @doctorName</div>
+                                        <div class="small muted-sm">Patient: @patientName</div>
                                     </td>
 
                                     <td class="fw-semibold">৳@fmt(p.Amount)</td>
@@ -327,14 +331,26 @@
             {
                 foreach (var item in Model)
                 {
-                    var doctorName = item.Appointment?.Doctor?.User?.FullName ?? "-";
+                    var doctorName = item.Appointment?.Doctor?.User?.FullName
+                    ?? item.Appointment?.Doctor?.User?.UserName
+                    ?? "-";
+
+                    var patientName = item.Appointment?.Patient?.User?.FullName
+                    ?? item.Appointment?.Patient?.User?.UserName
+                    ?? "-";
 
                     <div class="col-12">
-                        <div class="card mobile-card card-modern">
+                        <div class="card mobile-card card-modern"
+                             data-appointment="@item.AppointmentId"
+                             data-doctor="@doctorName"
+                             data-patient="@patientName"
+                             data-status="@item.Status.ToString()"
+                             data-date="@(item.PaymentDate?.ToString("yyyy-MM-dd") ?? "")">
                             <div class="card-body d-flex justify-content-between align-items-start">
                                 <div>
                                     <div class="fw-semibold">Appointment #@item.AppointmentId</div>
-                                    <div class="small muted-sm">@doctorName</div>
+                                    <div class="small muted-sm">Doctor: @doctorName</div>
+                                    <div class="small muted-sm">Patient: @patientName</div>
                                     <div class="mt-2">
                                         @if (item.Status == Telemed.Models.PaymentStatus.Paid)
                                         {
@@ -423,25 +439,23 @@
             const rows = Array.from(document.querySelectorAll('#paymentsTableBody tr'));
             rows.forEach(row => {
                 const ds = row.dataset || {};
-                // keep non-data rows (e.g. no data-id) hidden
                 if (!row.dataset.id) return row.style.display = 'none';
 
                 const appointment = (ds.appointment || '').toLowerCase();
                 const doctor = (ds.doctor || '').toLowerCase();
+                const patient = (ds.patient || '').toLowerCase();
                 const rowStatus = (ds.status || '').toLowerCase();
                 const date = ds.date || '';
 
                 let visible = true;
 
-                if (q && !(appointment.includes(q) || doctor.includes(q))) visible = false;
+                if (q && !(appointment.includes(q) || doctor.includes(q) || patient.includes(q))) visible = false;
                 if (status !== 'all' && rowStatus !== status.toLowerCase()) visible = false;
                 if (from && date < from) visible = false;
                 if (to && date > to) visible = false;
 
-                // animate hide/show
                 if (visible) {
                     row.style.display = '';
-                    // small reflow then class add for motion
                     requestAnimationFrame(()=> row.classList.add('visible'));
                     shown++;
                 } else {
@@ -454,7 +468,7 @@
             animateCount(totalCountEl, previous, shown);
         }
 
-        // Mobile grid filtering (simple: hide cards)
+        // Mobile grid filtering
         function applyFiltersMobile(){
             const q = (qInput.value || '').toLowerCase().trim();
             const status = statusFilter.value;
@@ -465,13 +479,15 @@
             const cards = Array.from(document.querySelectorAll('#paymentsCardGrid .col-12'));
             cards.forEach(col => {
                 const card = col.querySelector('.card') || {};
-                const appointment = (card.dataset?.appointment || '').toLowerCase();
-                const doctor = (card.dataset?.doctor || '').toLowerCase();
-                const rowStatus = (card.dataset?.status || '').toLowerCase();
-                const date = card.dataset?.date || '';
+                const ds = card.dataset || {};
+                const appointment = (ds.appointment || '').toLowerCase();
+                const doctor = (ds.doctor || '').toLowerCase();
+                const patient = (ds.patient || '').toLowerCase();
+                const rowStatus = (ds.status || '').toLowerCase();
+                const date = ds.date || '';
 
                 let visible = true;
-                if (q && !(appointment.includes(q) || doctor.includes(q))) visible = false;
+                if (q && !(appointment.includes(q) || doctor.includes(q) || patient.includes(q))) visible = false;
                 if (status !== 'all' && rowStatus !== status.toLowerCase()) visible = false;
                 if (from && date < from) visible = false;
                 if (to && date > to) visible = false;
@@ -488,7 +504,6 @@
             animateCount(totalCountEl, previous, shown);
         }
 
-        // unified filter handler
         const runFilters = debounce(() => {
             applyFilters();
             applyFiltersMobile();
@@ -500,45 +515,40 @@
         fromDate.addEventListener('change', runFilters);
         toDate.addEventListener('change', runFilters);
 
-        // Enter key triggers filter
         qInput.addEventListener('keyup', e => {
             if (e.key === 'Enter') runFilters();
         });
 
-        // refresh
         refreshBtn.addEventListener('click', () => {
-            // small UX: skeleton effect then reload
             const container = document.getElementById('paymentsContainer');
             container.classList.add('skeleton');
             setTimeout(()=> location.reload(), 450);
         });
 
-        // attach dataset to mobile cards so mobile filters can read them (we used server data for table rows)
+        // copy table dataset to mobile cards (just in case)
         (function syncMobileCardData(){
-            // for each mobile card, try to find matching payment row by appointment id and copy dataset
             const tableRows = document.querySelectorAll('#paymentsTableBody tr[data-id]');
-            const mobileCards = document.querySelectorAll('#paymentsCardGrid .card');
             const tableMap = {};
             tableRows.forEach(r=> { tableMap[r.dataset.appointment] = r.dataset; });
 
+            const mobileCards = document.querySelectorAll('#paymentsCardGrid .card');
             mobileCards.forEach(c => {
                 const txt = c.textContent || '';
-                // naive: parse appointment number from first line if present (server-side we could attach data attributes).
-                // But we'll try to match by appointment number rendered inside card's text
-                const apptMatch = txt.match(/Appointment\s*#?(\d+)/i);
-                if (apptMatch){
-                    const appt = apptMatch[1];
-                    if (tableMap[appt]){
-                        c.dataset.appointment = tableMap[appt].appointment || '';
-                        c.dataset.doctor = tableMap[appt].doctor || '';
-                        c.dataset.status = tableMap[appt].status || '';
-                        c.dataset.date = tableMap[appt].date || '';
+                const match = txt.match(/Appointment\s*#?(\d+)/i);
+                if (match){
+                    const appt = match[1];
+                    const ds = tableMap[appt];
+                    if (ds){
+                        c.dataset.appointment = ds.appointment || '';
+                        c.dataset.doctor = ds.doctor || '';
+                        c.dataset.patient = ds.patient || '';
+                        c.dataset.status = ds.status || '';
+                        c.dataset.date = ds.date || '';
                     }
                 }
             });
         })();
 
-        // small enhancement: animate initial reveal after short delay
         setTimeout(()=> {
             const rows = document.querySelectorAll('.row-anim');
             rows.forEach((r, i) => setTimeout(()=> r.classList.add('visible'), i * 25));

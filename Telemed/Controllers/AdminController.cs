@@ -115,13 +115,18 @@ namespace Telemed.Controllers
         // ---------------------------
         // Payments
         // ---------------------------
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Payments()
         {
             var payments = await _context.Payments
+                .AsNoTracking()
                 .Include(p => p.Appointment)
                     .ThenInclude(a => a.Patient)
+                        .ThenInclude(pt => pt.User)   // 🔹 load Patient -> User
                 .Include(p => p.Appointment)
                     .ThenInclude(a => a.Doctor)
+                        .ThenInclude(d => d.User)     // 🔹 load Doctor -> User
+                .OrderByDescending(p => p.PaymentDate)
                 .ToListAsync();
 
             return View(payments);

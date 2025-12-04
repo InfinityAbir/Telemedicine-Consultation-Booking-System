@@ -3,8 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|c:\\users\\lenovo\\desktop\\temp\\project\\telemed\\telemed\\controllers\\doctorscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|solutionrelative:telemed\\controllers\\doctorscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|c:\\users\\lenovo\\desktop\\temp\\project\\telemed\\telemed\\views\\payments\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|solutionrelative:telemed\\views\\payments\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|c:\\users\\lenovo\\desktop\\temp\\project\\telemed\\telemed\\models\\appointment.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|solutionrelative:telemed\\models\\appointment.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|c:\\users\\lenovo\\desktop\\temp\\project\\telemed\\telemed\\controllers\\paymentscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{16936CA6-D81F-4E68-9CC2-49F5705EF972}|Telemed\\Telemed.csproj|solutionrelative:telemed\\controllers\\paymentscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,7 +22,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -30,15 +38,41 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "DoctorsController.cs",
-              "DocumentMoniker": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Controllers\\DoctorsController.cs",
-              "RelativeDocumentMoniker": "Telemed\\Controllers\\DoctorsController.cs",
-              "ToolTip": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Controllers\\DoctorsController.cs",
-              "RelativeToolTip": "Telemed\\Controllers\\DoctorsController.cs",
-              "ViewState": "AgIAAAcAAAAAAAAAAADwv5oAAAABAAAAAAAAAA==",
+              "DocumentIndex": 1,
+              "Title": "Appointment.cs",
+              "DocumentMoniker": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Models\\Appointment.cs",
+              "RelativeDocumentMoniker": "Telemed\\Models\\Appointment.cs",
+              "ToolTip": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Models\\Appointment.cs",
+              "RelativeToolTip": "Telemed\\Models\\Appointment.cs",
+              "ViewState": "AgIAABEAAAAAAAAAAAAAACgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-03T15:54:43.516Z",
+              "WhenOpened": "2025-12-04T00:25:56.645Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Index.cshtml",
+              "DocumentMoniker": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Views\\Payments\\Index.cshtml",
+              "RelativeDocumentMoniker": "Telemed\\Views\\Payments\\Index.cshtml",
+              "ToolTip": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Views\\Payments\\Index.cshtml",
+              "RelativeToolTip": "Telemed\\Views\\Payments\\Index.cshtml",
+              "ViewState": "AgIAANQAAAAAAAAAAAAkwPcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-12-04T00:23:26.726Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "PaymentsController.cs",
+              "DocumentMoniker": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Controllers\\PaymentsController.cs",
+              "RelativeDocumentMoniker": "Telemed\\Controllers\\PaymentsController.cs",
+              "ToolTip": "C:\\Users\\Lenovo\\Desktop\\Temp\\Project\\Telemed\\Telemed\\Controllers\\PaymentsController.cs",
+              "RelativeToolTip": "Telemed\\Controllers\\PaymentsController.cs",
+              "ViewState": "AgIAABQCAAAAAAAAAAAcwDYCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-04T00:22:04.6Z",
               "EditorCaption": ""
             }
           ]
