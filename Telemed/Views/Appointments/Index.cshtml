@@ -1,0 +1,339 @@
+﻿@model IEnumerable<Telemed.ViewModels.AppointmentWithFeedbackStatus>
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    ViewData["Title"] = "My Appointments";
+}
+
+<div class="container py-5">
+
+    @* Alerts *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <h2 class="text-center mb-5 fw-bold">My Appointments</h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center shadow-sm rounded-4">
+            No appointments found.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var itemWrapper in Model)
+            {
+                var item = itemWrapper.Appointment;
+                var payment = itemWrapper.Payment;
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="card appointment-card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-body d-flex flex-column">
+
+                            @* Doctor Info *@
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="@(item.Doctor?.User?.ProfileImageUrl ?? "/images/default-user.png")"
+                                     alt="Doctor Photo"
+                                     class="rounded-circle me-3 border border-primary"
+                                     style="width:60px; height:60px; object-fit:cover;">
+                                <div>
+                                    <h5 class="mb-0 fw-bold">@item.Doctor?.User?.FullName</h5>
+                                    <small class="text-muted">@item.Doctor?.Specialization</small>
+                                </div>
+                            </div>
+
+                            @* Appointment Details *@
+                            <div class="mb-3 flex-grow-1">
+                                <p class="mb-1"><strong>Patient:</strong> @item.Patient?.User?.FullName</p>
+                                <p class="mb-1"><strong>Date:</strong> @item.ScheduledAt.ToString("MMMM dd, yyyy hh:mm tt")</p>
+
+                                <span class="badge bg-@(item.Status switch
+                                      {
+                                          Telemed.Models.AppointmentStatus.PendingPayment => "warning",
+                                          Telemed.Models.AppointmentStatus.Approved => "primary",
+                                          Telemed.Models.AppointmentStatus.Completed => "success",
+                                          Telemed.Models.AppointmentStatus.Rejected => "danger",
+                                          Telemed.Models.AppointmentStatus.CancelledByPatient => "secondary",
+                                          Telemed.Models.AppointmentStatus.CancelledByDoctor => "secondary",
+                                          Telemed.Models.AppointmentStatus.RefundCompleted => "info",
+                                          _ => "secondary"
+                                      }) fs-6">
+                            @item.Status
+                        </span>
+
+                                @* Refund info *@
+                        @if (payment != null)
+                                {
+                                    if (payment.RefundStatus == Telemed.Models.RefundStatus.Pending)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-2">Refund pending</span>
+                                    }
+                                    else if (payment.RefundStatus == Telemed.Models.RefundStatus.Partial)
+                                    {
+                                        <span class="badge bg-info text-dark ms-2">
+                                            Partial refund: @payment.RefundAmount
+                                        </span>
+                                    }
+                                }
+
+                                @if (!string.IsNullOrEmpty(item.PatientNote))
+                                {
+                                    <p class="mt-2 text-muted small"><strong>Note:</strong> @item.PatientNote</p>
+                                }
+                            </div>
+
+                            @* Action Buttons *@
+                            <div class="mt-3 d-flex flex-wrap gap-2">
+
+                                <a asp-action="Details" asp-route-id="@item.AppointmentId"
+                                   class="btn btn-outline-primary btn-sm flex-grow-1">
+                                    View
+                                </a>
+
+                                @* CANCEL BUTTON *@
+                                @if (User.IsInRole("Patient")
+                                                        && item.Status != Telemed.Models.AppointmentStatus.Completed
+                                                        && item.Status != Telemed.Models.AppointmentStatus.CancelledByPatient
+                                                        && item.Status != Telemed.Models.AppointmentStatus.CancelledByDoctor
+                                                        && item.Status != Telemed.Models.AppointmentStatus.RefundCompleted)
+                                {
+                                    <form asp-action="Cancel"
+                                          asp-controller="Appointments"
+                                          asp-route-id="@item.AppointmentId"
+                                          method="post"
+                                          class="flex-grow-1"
+                                          onsubmit="return confirm('Cancel appointment? Refund rules will apply automatically.');">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-danger btn-sm w-100">
+                                            Cancel
+                                        </button>
+                                    </form>
+                                }
+
+                                @* VIDEO ONLY IF NOT CANCELLED/REFUNDED *@
+                                @if (item.Status != Telemed.Models.AppointmentStatus.CancelledByPatient
+                                                        && item.Status != Telemed.Models.AppointmentStatus.CancelledByDoctor
+                                                        && item.Status != Telemed.Models.AppointmentStatus.RefundCompleted)
+                                {
+                                    var schedule = item.Schedule;
+                                    var scheduleLink = schedule?.VideoCallLink;
+                                    var hasVideoLink = !string.IsNullOrWhiteSpace(scheduleLink);
+                                    var isPaid = itemWrapper.IsPaid;
+
+                                    TimeSpan slotDuration;
+                                    if (schedule != null && schedule.EndTime > schedule.StartTime && schedule.MaxPatientsPerDay > 0)
+                                    {
+                                        var totalMinutes = (schedule.EndTime - schedule.StartTime).TotalMinutes;
+                                        slotDuration = TimeSpan.FromMinutes(Math.Max(5, totalMinutes / schedule.MaxPatientsPerDay));
+                                    }
+                                    else
+                                    {
+                                        slotDuration = TimeSpan.FromMinutes(30);
+                                    }
+
+                                    var nowUtc = DateTime.UtcNow;
+                                    var scheduledUtc = item.ScheduledAt.ToUniversalTime();
+                                    var enableAt = scheduledUtc.AddMinutes(-5);
+                                    var endAt = scheduledUtc.Add(slotDuration);
+                                    var serverEnable = isPaid && hasVideoLink && nowUtc >= enableAt && nowUtc <= endAt;
+
+                                    if (hasVideoLink)
+                                    {
+                                        if (serverEnable)
+                                        {
+                                            <a asp-action="JoinVideo"
+                                               asp-route-appointmentId="@item.AppointmentId"
+                                               class="btn btn-primary btn-sm flex-grow-1"
+                                               target="_blank"
+                                               rel="noopener">
+                                                Join Video Call
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-secondary btn-sm flex-grow-1 video-join-btn"
+                                                    disabled
+                                                    data-enable-at="@enableAt.ToString("o")"
+                                                    data-end-at="@endAt.ToString("o")"
+                                                    data-appointment-id="@item.AppointmentId"
+                                                    data-paid="@(isPaid.ToString().ToLower())">
+                                                @{
+                                                    if (!isPaid)
+                                                    {
+                                                        <text>Waiting for payment</text>
+                                                    }
+                                                    else if (DateTime.UtcNow > endAt)
+                                                    {
+                                                        <text>Consultation ended</text>
+                                                    }
+                                                    else
+                                                    {
+                                                        <text>Video link will enable 5m before</text>
+                                                    }
+                                                }
+                                            </button>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm flex-grow-1" disabled>
+                                            Video link not provided
+                                        </button>
+                                    }
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-secondary btn-sm flex-grow-1" disabled>
+                                        Appointment cancelled
+                                    </button>
+                                }
+
+                                @* Feedback *@
+                                @if (item.Status == Telemed.Models.AppointmentStatus.Completed)
+                                {
+                                    if (itemWrapper.HasFeedback)
+                                    {
+                                        <button class="btn btn-success btn-sm flex-grow-1" disabled>
+                                            Feedback Given
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-success btn-sm flex-grow-1"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#feedbackModal-@item.AppointmentId">
+                                            Give Feedback
+                                        </button>
+                                    }
+                                }
+
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.AppointmentId"
+                                       class="btn btn-outline-secondary btn-sm flex-grow-1">Edit</a>
+                                    <a asp-action="Delete" asp-route-id="@item.AppointmentId"
+                                       class="btn btn-outline-danger btn-sm flex-grow-1">Delete</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* Feedback modal stays same *@
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .appointment-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 1rem;
+    }
+
+        .appointment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+        }
+
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 5px;
+    }
+
+        .star-rating input[type="radio"] {
+            display: none;
+        }
+
+        .star-rating label {
+            font-size: 1.8rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+            .star-rating input[type="radio"]:checked ~ label,
+            .star-rating label:hover,
+            .star-rating label:hover ~ label {
+                color: #ffc107;
+            }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.video-join-btn').forEach(function (btn) {
+            const enableAtIso = btn.getAttribute('data-enable-at');
+            const endAtIso = btn.getAttribute('data-end-at');
+            const isPaid = btn.getAttribute('data-paid') === 'true';
+            const appointmentId = btn.getAttribute('data-appointment-id');
+
+            if (!enableAtIso || !endAtIso || !appointmentId) return;
+
+            const enableAt = new Date(enableAtIso);
+            const endAt = new Date(endAtIso);
+
+            function update() {
+                const now = new Date();
+
+                if (now >= endAt) {
+                    btn.disabled = true;
+                    btn.classList.remove('btn-primary', 'btn-secondary');
+                    btn.classList.add('btn-outline-secondary');
+                    btn.textContent = 'Consultation ended';
+                    return;
+                }
+
+                if (!isPaid) {
+                    btn.disabled = true;
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-secondary');
+                    btn.textContent = 'Waiting for payment';
+                    return;
+                }
+
+                if (now >= enableAt) {
+                    if (btn.disabled) {
+                        btn.disabled = false;
+                        btn.classList.remove('btn-secondary');
+                        btn.classList.add('btn-primary');
+                        btn.textContent = 'Join Video Call';
+                        btn.addEventListener('click', function () {
+                            const joinUrl = '/Appointments/JoinVideo?appointmentId=' + encodeURIComponent(appointmentId);
+                            window.open(joinUrl, '_blank');
+                        }, { once: true });
+                    }
+                    return;
+                }
+
+                const msLeft = enableAt - now;
+                const mins = Math.floor(msLeft / 60000);
+                const secs = Math.floor((msLeft % 60000) / 1000);
+                btn.disabled = true;
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+                btn.textContent = `Video link active in ${mins}m ${secs}s`;
+            }
+
+            update();
+            const interval = setInterval(function () {
+                update();
+                if (new Date() >= endAt) clearInterval(interval);
+            }, 1000);
+        });
+    });
+</script>

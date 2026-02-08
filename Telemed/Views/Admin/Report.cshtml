@@ -1,0 +1,437 @@
+﻿@model Telemed.ViewModels.AdminReportViewModel
+@using System.Linq
+
+@{
+    ViewData["Title"] = "Admin Reports - TeleMed";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #f0f8ff, #ffffff);
+    }
+
+    .dashboard-container {
+        padding: 40px 20px;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .card {
+        border: none;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        }
+
+    .summary-card {
+        text-align: center;
+        padding: 25px;
+        color: #333;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .summary-card .summary-icon {
+            font-size: 2.3rem;
+            color: #007bff;
+            margin-bottom: 8px;
+            animation: floatIcon 2s ease-in-out infinite;
+        }
+
+    @@keyframes floatIcon {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    .chart-container {
+        height: 300px;
+        width: 100%;
+    }
+
+    .btn-export {
+        margin-right: 10px;
+        border-radius: 10px;
+        transition: 0.3s;
+    }
+
+        .btn-export:hover {
+            transform: scale(1.05);
+        }
+
+    .table-container {
+        margin-top: 40px;
+    }
+
+    .table thead {
+        background: #007bff;
+        color: white;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f1f7ff;
+    }
+
+    .badge-soft {
+        background-color: #eef4ff;
+        color: #1f4ccc;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 0.8rem;
+    }
+</style>
+
+<div class="dashboard-container container fade-in" id="adminReportRoot">
+    <h2 class="mb-4 text-center fw-bold text-primary">
+        <i class="bi bi-graph-up-arrow"></i> TeleMed Admin Dashboard
+    </h2>
+
+    @* Backup success message *@
+    @if (TempData["ReportMessage"] != null)
+    {
+        <div class="alert alert-success text-center">
+            @TempData["ReportMessage"]
+        </div>
+    }
+
+    <!-- Export + Backup Buttons -->
+    <div class="d-flex justify-content-end mb-3 gap-2">
+
+        <button class="btn btn-outline-primary btn-export" id="exportPDF">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+        </button>
+
+        <button class="btn btn-outline-success btn-export" id="exportCSV">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </button>
+
+        @* Backup Button *@
+        <form asp-action="RunBackup" method="post">
+            <button type="submit" class="btn btn-danger btn-export">
+                <i class="bi bi-database-down"></i> Backup Database
+            </button>
+        </form>
+    </div>
+
+    <!-- Summary Cards: core counts -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-person-hearts"></i></div>
+                <h6>Total Patients</h6>
+                <h3 id="patientCount">@Model.TotalPatients</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-person-badge"></i></div>
+                <h6>Total Doctors</h6>
+                <h3 id="doctorCount">@Model.TotalDoctors</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-calendar2-week"></i></div>
+                <h6>Total Appointments</h6>
+                <h3 id="appointmentCount">@Model.TotalAppointments</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-check2-circle"></i></div>
+                <h6>Completed Appointments</h6>
+                <h3 id="completedCount">@Model.CompletedAppointments</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-person-x"></i></div>
+                <h6>Pending Doctor Approvals</h6>
+                <h3 id="pendingDoctorCount">@Model.PendingDoctorApprovals</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-cash-coin"></i></div>
+                <h6>Pending Fee Change Requests</h6>
+                <h3 id="pendingFeeCount">@Model.PendingFeeChangeRequests</h3>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Summary Cards: money + pending -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-currency-exchange"></i></div>
+                <h6>Total Revenue</h6>
+                <h3 id="revenueTotal">@Model.TotalRevenue.ToString("N2") ৳</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-credit-card"></i></div>
+                <h6>Pending Payments</h6>
+                <h3 id="pendingPayments">@Model.PendingPayments</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card summary-card">
+                <div class="summary-icon"><i class="bi bi-hourglass-split"></i></div>
+                <h6>Awaiting Doctor Approval</h6>
+                <h3 id="pendingApprovals">@Model.PendingDoctorApprovals</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mt-4 g-4">
+        <div class="col-lg-6">
+            <div class="card p-4">
+                <h5 class="fw-semibold text-primary">
+                    <i class="bi bi-bar-chart-line"></i> Appointments (Last Months)
+                </h5>
+                <div class="chart-container mt-3">
+                    <canvas id="appointmentsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-4">
+                <h5 class="fw-semibold text-primary">
+                    <i class="bi bi-pie-chart"></i> Appointment Status Distribution
+                </h5>
+                <div class="chart-container mt-3">
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="mt-3 small text-muted">
+                    <span class="badge-soft me-2">Completed: @Model.CompletedAppointments</span>
+                    <span class="badge-soft me-2">Pending Payment: @Model.PendingPayments</span>
+                    <span class="badge-soft me-2">Awaiting Doctor: @Model.PendingDoctorApprovals</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportTable">
+        <!-- Doctor Earnings -->
+        <div class="table-container">
+            <div class="card p-4 mt-4">
+                <h5 class="fw-semibold text-primary">
+                    <i class="bi bi-cash-stack"></i> Doctor Earnings (All Consultations)
+                </h5>
+                <div class="table-responsive mt-3">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Specialization</th>
+                                <th class="text-end">Total Earned (৳)</th>
+                                <th class="text-end">Paid Consultations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.DoctorEarnings != null && Model.DoctorEarnings.Any())
+                            {
+                                foreach (var doc in Model.DoctorEarnings)
+                                {
+                                    <tr>
+                                        <td>@doc.DoctorName</td>
+                                        <td>@doc.Specialization</td>
+                                        <td class="text-end">@doc.TotalEarned.ToString("N2")</td>
+                                        <td class="text-end">@doc.TotalPaidAppointments</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        No doctor earnings data available.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctor Availability -->
+        <div class="table-container">
+            <div class="card p-4 mt-4">
+                <h5 class="fw-semibold text-primary">
+                    <i class="bi bi-calendar-week"></i> Doctor Availability (Day View)
+                </h5>
+                <p class="text-muted small mb-2">
+                    Shows which day which doctor is available and at what time.
+                </p>
+                <div class="table-responsive mt-3">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Doctor</th>
+                                <th>Time</th>
+                                <th class="text-end">Max Patients</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.DoctorAvailabilities != null && Model.DoctorAvailabilities.Any())
+                            {
+                                foreach (var a in Model.DoctorAvailabilities)
+                                {
+                                    <tr>
+                                        <td>@a.DayName</td>
+                                        <td>@a.DoctorName</td>
+                                        <td>
+                                            @DateTime.Today.Add(a.StartTime).ToString("hh:mm tt")
+                                            -
+                                            @DateTime.Today.Add(a.EndTime).ToString("hh:mm tt")
+                                        </td>
+
+                                        <td class="text-end">@a.MaxPatientsPerDay</td>
+                                        <td>
+                                            @if (a.IsApproved)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">
+                                        No schedule data found.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const appointmentMonths = @Html.Raw(Json.Serialize(
+                    (Model.MonthlyAppointments ?? new List<Telemed.ViewModels.MonthlyAppointmentSummary>())
+                            .Select(m => m.Month).ToArray()
+            ));
+
+    const appointmentCounts = @Html.Raw(Json.Serialize(
+                (Model.MonthlyAppointments ?? new List<Telemed.ViewModels.MonthlyAppointmentSummary>())
+                        .Select(m => m.Count).ToArray()
+        ));
+
+    const completed = @Model.CompletedAppointments;
+    const pendingPayment = @Model.PendingPayments;
+    const awaitingDoctor = @Model.PendingDoctorApprovals;
+    const other = Math.max(@Model.TotalAppointments - (completed + pendingPayment + awaitingDoctor), 0);
+
+        const statusLabels = ['Completed', 'Pending Payment', 'Awaiting Doctor Approval', 'Other'];
+        const statusCounts = [completed, pendingPayment, awaitingDoctor, other];
+
+        const appointmentsChart = new Chart(document.getElementById('appointmentsChart'), {
+            type: 'line',
+            data: {
+                labels: appointmentMonths,
+                datasets: [{
+                    label: 'Appointments',
+                    data: appointmentCounts,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0,123,255,0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#007bff'
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 1200 },
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        const statusChart = new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusCounts,
+                    backgroundColor: ['#198754', '#ffc107', '#0d6efd', '#6c757d'],
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: { duration: 1500 },
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        document.getElementById("exportPDF").addEventListener("click", () => {
+            const report = document.getElementById("reportTable");
+            html2pdf().set({
+                margin: 0.5,
+                filename: 'TeleMed_Admin_Report.pdf',
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            }).from(report).save();
+        });
+
+        document.getElementById("exportCSV").addEventListener("click", () => {
+            const table = document.querySelector("#reportTable table");
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Report" });
+            XLSX.writeFile(wb, "TeleMed_Admin_Report.csv");
+        });
+    </script>
+}

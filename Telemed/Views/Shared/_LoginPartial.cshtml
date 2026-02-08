@@ -1,0 +1,15 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<Telemed.Models.ApplicationUser> SignInManager
+@inject UserManager<Telemed.Models.ApplicationUser> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" method="post" id="logoutForm">
+        <button type="submit" class="btn btn-link text-white p-0">Logout</button>
+    </form>
+}
+else
+{
+    <a asp-area="Identity" asp-page="/Account/Login" class="text-white me-2">Login</a>
+    <a asp-area="Identity" asp-page="/Account/Register" class="text-white">Register</a>
+}

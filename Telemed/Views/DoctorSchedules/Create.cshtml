@@ -1,0 +1,510 @@
+﻿@model Telemed.Models.DoctorScheduleMultiDayViewModel
+
+@{
+    ViewData["Title"] = "Create Schedule";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<style>
+    :root {
+        --accent1: #0066FF;
+        --accent2: #00D4AA;
+        --muted: #6b7280;
+        --card-bg: #ffffff;
+    }
+
+    /* base */
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        background: linear-gradient(180deg, #f6f8fb 0%, #eef6ff 100%);
+        font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: #111827;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page-shell {
+        max-width: 1100px;
+        margin: 36px auto;
+        padding: 20px;
+    }
+
+    .hero {
+        border-radius: 14px;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(0,102,255,0.10), rgba(0,212,170,0.04));
+        box-shadow: 0 6px 30px rgba(2,6,23,0.06);
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 18px;
+    }
+
+        .hero h1 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+            font-size: .95rem;
+        }
+
+    .card-panel {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+    }
+
+    /* layout: left form + right preview */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 18px;
+        align-items: start;
+    }
+
+    /* form */
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        padding: 10px 12px;
+        border: 1px solid #e6e9ef;
+        width: 100%;
+    }
+
+    .form-text {
+        color: var(--muted);
+        margin-top: 6px;
+        display: block;
+    }
+
+    /* ensure time and number inputs behave and don't overflow */
+    input[type="time"], input[type="date"], input[type="number"], input[type="text"] {
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+        appearance: none;
+        width: 100%;
+        min-width: 0;
+        font-size: 1rem;
+    }
+
+    /* right column */
+    .right-side {
+        position: sticky;
+        top: 96px;
+    }
+
+    .allowed-bubble {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px dashed #e6eef7;
+        background: linear-gradient(180deg, rgba(0,102,255,0.02), rgba(0,212,170,0.01));
+        margin-bottom: 12px;
+    }
+
+    .btn-suggestion {
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-weight: 600;
+        border: none;
+        background: linear-gradient(90deg, var(--accent1), var(--accent2));
+        color: white;
+    }
+
+    .slot-list {
+        max-height: 340px;
+        overflow: auto;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #eef4fb;
+        background: #fff;
+    }
+
+    .slot-item {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 8px;
+        border-radius: 8px;
+        transition: transform .12s ease, box-shadow .12s ease;
+        margin-bottom: 8px;
+        border: 1px solid #f1f5f9;
+    }
+
+        .slot-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(2,6,23,0.06);
+        }
+
+    .slot-time {
+        min-width: 120px;
+        font-weight: 700;
+        color: #0f172a;
+        padding: 8px 10px;
+        border-radius: 8px;
+        text-align: center;
+        background: linear-gradient(90deg, rgba(0,102,255,0.04), rgba(0,212,170,0.02));
+    }
+
+    .slot-meta {
+        color: var(--muted);
+        font-size: 0.92rem;
+    }
+
+    .muted-note {
+        color: var(--muted);
+        font-size: .92rem;
+    }
+
+    /* small screens: single column layout */
+    @@media (max-width: 980px) {
+        .form-grid
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .right-side {
+        position: static;
+    }
+
+    .slot-time {
+        min-width: 96px;
+    }
+
+    }
+
+    /* accessibility / small polish */
+    .text-danger {
+        font-size: .95rem;
+    }
+</style>
+
+<div class="page-shell">
+    <div class="hero">
+        <div>
+            <h1>Create Schedule</h1>
+            <p>Set date range, working hours and number of patients per day. Minimum per patient: <strong>10 minutes</strong>.</p>
+        </div>
+        <div class="ms-auto text-end" style="font-size:.9rem; color:var(--muted);">
+            Tip: use <strong>Fill max</strong> for a safe value.
+        </div>
+    </div>
+
+    <div class="card-panel">
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill"></i> @TempData["Message"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="form-grid mt-3">
+            <!-- LEFT: FORM -->
+            <div>
+                <form id="createScheduleForm" asp-action="Create" method="post" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken()
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label asp-for="StartDate" class="form-label">Start Date</label>
+                            <input asp-for="StartDate" class="form-control" type="date" required />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label asp-for="EndDate" class="form-label">End Date</label>
+                            <input asp-for="EndDate" class="form-control" type="date" required />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
+                        </div>
+
+                        <!-- Make these 3 inputs share a row cleanly -->
+                        <div class="col-12 col-md-4">
+                            <label asp-for="StartTime" class="form-label">Start Time</label>
+                            <input asp-for="StartTime" id="startTime" class="form-control" type="time" step="60" required />
+                            <span asp-validation-for="StartTime" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="EndTime" class="form-label">End Time</label>
+                            <input asp-for="EndTime" id="endTime" class="form-control" type="time" step="60" required />
+                            <span asp-validation-for="EndTime" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="MaxPatientsPerDay" class="form-label">Max Patients Per Day</label>
+                            <div class="d-flex gap-2">
+                                <input asp-for="MaxPatientsPerDay" id="maxPatients" class="form-control" type="number" min="1" max="100" required />
+                                <button id="fillMaxBtn" type="button" class="btn-suggestion" title="Fill with maximum allowed">Fill max</button>
+                            </div>
+                            <div id="maxAllowedHelp" class="form-text">Allowed per day: —</div>
+                            <span id="maxPatientsError" class="text-danger" style="display:none;"></span>
+                            <span asp-validation-for="MaxPatientsPerDay" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="VideoCallLink" class="form-label">Video Call Link (Optional)</label>
+                            <input asp-for="VideoCallLink" class="form-control" placeholder="https://zoom.us/..." />
+                            <span asp-validation-for="VideoCallLink" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <button type="submit" id="submitBtn" class="btn btn-primary">Create Schedules</button>
+                            <a asp-action="MySchedules" class="btn btn-outline-secondary ms-2">Back to My Schedules</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- RIGHT: PREVIEW & HELP -->
+            <aside class="right-side">
+                <div class="allowed-bubble">
+                    <div><strong>Minimum per patient</strong><div class="form-text">10 minutes</div></div>
+                    <div class="text-end"><strong id="allowedCount">—</strong><div class="form-text">max / day</div></div>
+                </div>
+
+                <div class="card-panel mb-3">
+                    <h6 style="margin-bottom:10px;">Suggested slots preview</h6>
+                    <div id="slotContainer" class="slot-list">
+                        <div class="muted-note">Set valid Start/End times and number of patients to preview slots here.</div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2 justify-content-end">
+                        <button id="autoFillBtn" type="button" class="btn btn-outline-secondary">Auto-fill & preview</button>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <h6 style="margin-bottom:10px;">Quick help</h6>
+                    <p class="muted-note" style="margin:0;">
+                        The system enforces a minimum of <strong>10 minutes</strong> per patient. If your requested number exceeds the allowed maximum the form will block and show a message.
+                    </p>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            'use strict';
+
+            const MINUTES_PER_PATIENT = 10;
+
+            const form = document.getElementById('createScheduleForm');
+            const startTimeInput = document.getElementById('startTime');
+            const endTimeInput = document.getElementById('endTime');
+            const maxPatientsInput = document.getElementById('maxPatients');
+            const maxAllowedHelp = document.getElementById('maxAllowedHelp');
+            const maxPatientsError = document.getElementById('maxPatientsError');
+            const submitBtn = document.getElementById('submitBtn');
+            const allowedCount = document.getElementById('allowedCount');
+            const slotContainer = document.getElementById('slotContainer');
+            const fillMaxBtn = document.getElementById('fillMaxBtn');
+            const autoFillBtn = document.getElementById('autoFillBtn');
+
+            function parseTimeToMinutes(timeStr) {
+                if (!timeStr) return null;
+                const parts = timeStr.split(':');
+                if (parts.length < 2) return null;
+                const h = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10);
+                if (Number.isNaN(h) || Number.isNaN(m)) return null;
+                return h * 60 + m;
+            }
+
+            function formatDisplayTime(mins) {
+                const h = Math.floor(mins / 60);
+                const m = Math.floor(mins % 60);
+                const date = new Date();
+                date.setHours(h, m, 0, 0);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function computeAvailableMinutes() {
+                const s = parseTimeToMinutes(startTimeInput.value);
+                const e = parseTimeToMinutes(endTimeInput.value);
+                if (s === null || e === null) return null;
+                const diff = e - s;
+                return diff > 0 ? diff : null;
+            }
+
+            function computeAllowed() {
+                const minutes = computeAvailableMinutes();
+                if (minutes === null) return 0;
+                return Math.floor(minutes / MINUTES_PER_PATIENT);
+            }
+
+            function renderAllowed() {
+                const allowed = computeAllowed();
+                allowedCount.textContent = allowed > 0 ? allowed : '—';
+                maxAllowedHelp.textContent = allowed > 0
+                    ? `Allowed per day: ${allowed} patient${allowed !== 1 ? 's' : ''} (min ${MINUTES_PER_PATIENT} min each)`
+                    : 'Allowed per day: choose valid start and end times.';
+            }
+
+            function generateSlots(requested) {
+                const minutes = computeAvailableMinutes();
+                slotContainer.innerHTML = '';
+                if (minutes === null || requested <= 0) {
+                    slotContainer.innerHTML = `<div class="muted-note">Set valid times and number of patients to preview slots.</div>`;
+                    return;
+                }
+
+                if (requested > Math.floor(minutes / MINUTES_PER_PATIENT)) {
+                    slotContainer.innerHTML = `<div class="text-danger">Requested number exceeds allowed maximum.</div>`;
+                    return;
+                }
+
+                const start = parseTimeToMinutes(startTimeInput.value);
+                const end = parseTimeToMinutes(endTimeInput.value);
+
+                // slot length can be fractional — distribute evenly, last slot takes remainder
+                const slotLength = minutes / requested;
+
+                const frag = document.createDocumentFragment();
+                for (let i = 0; i < requested; i++) {
+                    const s = Math.round(start + i * slotLength);
+                    const e = (i === requested - 1) ? end : Math.round(start + (i + 1) * slotLength);
+                    const item = document.createElement('div');
+                    item.className = 'slot-item';
+
+                    const timeBox = document.createElement('div');
+                    timeBox.className = 'slot-time';
+                    timeBox.textContent = `${formatDisplayTime(s)} → ${formatDisplayTime(e)}`;
+
+                    const meta = document.createElement('div');
+                    meta.className = 'slot-meta';
+                    meta.innerHTML = `<div><strong>Patient ${i + 1}</strong></div><div>${Math.max(1, (e - s))} min slot</div>`;
+
+                    item.appendChild(timeBox);
+                    item.appendChild(meta);
+                    frag.appendChild(item);
+                }
+
+                slotContainer.appendChild(frag);
+            }
+
+            function validateBeforeSubmit(e) {
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                const startDateVal = document.querySelector('input[name="StartDate"]').value;
+                const endDateVal = document.querySelector('input[name="EndDate"]').value;
+                if (!startDateVal || !endDateVal) {
+                    alert('Please fill Start Date and End Date.');
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+                const startDate = new Date(startDateVal);
+                const endDate = new Date(endDateVal);
+                if (startDate > endDate) {
+                    alert('Start Date cannot be after End Date.');
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+
+                const minutes = computeAvailableMinutes();
+                if (minutes === null) {
+                    alert('Please enter a valid Start Time and End Time (End after Start).');
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+
+                const allowed = Math.floor(minutes / MINUTES_PER_PATIENT);
+                const requested = parseInt(maxPatientsInput.value || '0', 10);
+
+                if (requested <= 0 || Number.isNaN(requested)) {
+                    maxPatientsError.textContent = 'Please enter a valid number of patients.';
+                    maxPatientsError.style.display = 'block';
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+
+                if (requested > allowed) {
+                    maxPatientsError.textContent = `Too many patients for the selected time range. Max allowed: ${allowed}.`;
+                    maxPatientsError.style.display = 'block';
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+
+                maxPatientsError.style.display = 'none';
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating...';
+                return true;
+            }
+
+            // events
+            [startTimeInput, endTimeInput].forEach(inp => inp.addEventListener('change', () => {
+                renderAllowed();
+                maxPatientsError.style.display = 'none';
+                const req = parseInt(maxPatientsInput.value || '0', 10);
+                if (req > 0) generateSlots(req);
+            }));
+
+            maxPatientsInput.addEventListener('input', () => {
+                maxPatientsError.style.display = 'none';
+                const req = parseInt(maxPatientsInput.value || '0', 10);
+                if (req > 0) generateSlots(req);
+            });
+
+            fillMaxBtn.addEventListener('click', () => {
+                const max = computeAllowed();
+                if (max <= 0) {
+                    alert('Choose valid start and end times first.');
+                    return;
+                }
+                maxPatientsInput.value = max;
+                generateSlots(max);
+            });
+
+            autoFillBtn.addEventListener('click', () => {
+                const max = computeAllowed();
+                if (max <= 0) {
+                    alert('Choose valid start and end times first.');
+                    return;
+                }
+                maxPatientsInput.value = max;
+                generateSlots(max);
+                fillMaxBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 260 });
+            });
+
+            form.addEventListener('submit', function (ev) {
+                if (!validateBeforeSubmit(ev)) return;
+            }, false);
+
+            // initial render
+            renderAllowed();
+            const initialReq = parseInt(maxPatientsInput.value || '0', 10);
+            if (initialReq > 0) generateSlots(initialReq);
+        })();
+    </script>
+}

@@ -1,0 +1,81 @@
+﻿@using Microsoft.AspNetCore.Identity
+@model Telemed.Models.Patient
+@inject UserManager<Telemed.Models.ApplicationUser> UserManager
+
+@{
+    ViewData["Title"] = "Edit Patient";
+}
+
+<div class="container my-5">
+    <div class="card shadow-sm p-4 mx-auto" style="max-width:700px; border-radius:15px;">
+        <div class="text-center mb-4">
+            <h3 class="text-primary">Edit Patient Profile</h3>
+            <p class="text-muted">Update the patient’s information below.</p>
+        </div>
+
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <input type="hidden" asp-for="PatientId" />
+
+            <div class="mb-3">
+                <label asp-for="UserId" class="form-label">User</label>
+                <select asp-for="UserId" class="form-select" asp-items="ViewBag.UserId">
+                    <option value="">-- Select User --</option>
+                </select>
+                <span asp-validation-for="UserId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="DOB" class="form-label">Date of Birth</label>
+                <input asp-for="DOB" type="date" class="form-control" />
+                <span asp-validation-for="DOB" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Gender" class="form-label">Gender</label>
+                <select asp-for="Gender" class="form-select">
+                    <option value="">-- Select Gender --</option>
+                    <option value="Male" @@(Model.Gender == "Male" ? "selected" : "")>Male</option>
+                    <option value="Female" @@(Model.Gender == "Female" ? "selected" : "")>Female</option>
+                    <option value="Other" @@(Model.Gender == "Other" ? "selected" : "")>Other</option>
+                </select>
+                <span asp-validation-for="Gender" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ContactNumber" class="form-label">Contact Number</label>
+                <input asp-for="ContactNumber" class="form-control" />
+                <span asp-validation-for="ContactNumber" class="text-danger"></span>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-save"></i> Save Changes
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-lg ms-2">
+                    <i class="bi bi-arrow-left-circle"></i> Back to List
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .card {
+        background: #ffffff;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-lg {
+        border-radius: 8px;
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
