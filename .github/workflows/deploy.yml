@@ -19,7 +19,7 @@ jobs:
         run: dotnet publish Telemed/Telemed.csproj -c Release -o ./publish
 
       - name: Take app offline (avoid locked DLLs)
-        run: echo "Deploying..." > ./publish/app_offline.htm
+        run: echo "Deploying... (run ${{ github.run_id }})" > ./publish/app_offline.htm
 
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -29,3 +29,6 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./publish/
           server-dir: /wwwroot/
+
+      - name: Bring app back online
+        run: curl -s "ftp://${{ secrets.FTP_SERVER }}/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" -Q "DELE /wwwroot/app_offline.htm"
