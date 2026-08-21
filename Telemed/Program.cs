@@ -1,4 +1,5 @@
 // Program.cs
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,12 @@ builder.Services.AddTransient<IEmailSender, EmailSenderService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Persist data-protection keys to disk so app-pool recycles (common on
+// shared/free hosting) don't invalidate every login session and
+// antiforgery token in the app.
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys")));
+
 //ChatBot
 builder.Services.AddScoped<ChatService>();
 
@@ -42,13 +49,16 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 
 builder.Services.AddControllersWithViews();
 
-// Add BackupService only if enabled in configuration
+// Register as a singleton so controllers (e.g. AdminController's manual
+// "run backup now" action) can always resolve it, regardless of whether
+// the automatic background loop is enabled.
+builder.Services.AddSingleton<TelemedSystem.Services.BackupService>();
+
+// Only run it as a hosted background service if enabled in configuration -
+// free/shared hosting tiers recycle the app pool and have no always-on,
+// so the automatic loop is unreliable there.
 if (builder.Configuration.GetValue<bool>("DatabaseBackup:Enabled"))
 {
-    // Register as a singleton so controllers can use it
-    builder.Services.AddSingleton<TelemedSystem.Services.BackupService>();
-
-    // Also run it as a hosted service (using the same instance)
     builder.Services.AddHostedService(sp =>
         sp.GetRequiredService<TelemedSystem.Services.BackupService>());
 }
