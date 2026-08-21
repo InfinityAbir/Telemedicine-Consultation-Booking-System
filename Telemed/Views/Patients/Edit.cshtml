@@ -35,9 +35,9 @@
                 <label asp-for="Gender" class="form-label">Gender</label>
                 <select asp-for="Gender" class="form-select">
                     <option value="">-- Select Gender --</option>
-                    <option value="Male" @@(Model.Gender == "Male" ? "selected" : "")>Male</option>
-                    <option value="Female" @@(Model.Gender == "Female" ? "selected" : "")>Female</option>
-                    <option value="Other" @@(Model.Gender == "Other" ? "selected" : "")>Other</option>
+                    <option value="Male" selected="@(Model.Gender == "Male")">Male</option>
+                    <option value="Female" selected="@(Model.Gender == "Female")">Female</option>
+                    <option value="Other" selected="@(Model.Gender == "Other")">Other</option>
                 </select>
                 <span asp-validation-for="Gender" class="text-danger"></span>
             </div>
