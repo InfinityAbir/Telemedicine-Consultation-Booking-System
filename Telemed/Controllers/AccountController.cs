@@ -135,26 +135,20 @@ namespace Telemed.Controllers
                 var hasPatientProfile = await _context.Patients.AnyAsync(p => p.UserId == candidate.Id);
                 if (hasDoctorProfile || hasPatientProfile) return false;
 
-                // An unconfirmed account with no profile is an orphan from a failed
-                // registration. A CONFIRMED account with no profile and no role is
-                // a different kind of orphan: its Doctor/Patient row was deleted by
-                // an admin (see Patients/DoctorsController Delete) without removing
-                // the login account. Either way, nothing in the app can use it, so
-                // it's safe to heal.
-                if (!candidate.EmailConfirmed)
-                {
-                    await _userManager.DeleteAsync(candidate);
-                    return true;
-                }
-
+                // Admin accounts legitimately have no Doctor/Patient row by design —
+                // never auto-delete those, regardless of confirmation status.
                 var roles = await _userManager.GetRolesAsync(candidate);
-                if (roles.Count == 0)
-                {
-                    await _userManager.DeleteAsync(candidate);
-                    return true;
-                }
+                if (roles.Contains("Admin")) return false;
 
-                return false;
+                // Anything else (Doctor/Patient role or no role at all) with no
+                // matching profile row is always broken in this app's data model —
+                // either an unconfirmed leftover from a failed registration, or a
+                // confirmed account whose profile was deleted by an admin (see
+                // Patients/DoctorsController Delete) without removing the login
+                // account, possibly before that cascade existed. Either way it's
+                // unusable, so it's safe to heal.
+                await _userManager.DeleteAsync(candidate);
+                return true;
             }
 
             // Phone number check (ContactNumber only applies to Patient registration —
