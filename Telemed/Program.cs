@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Stripe;
 using Telemed.Models;
@@ -75,6 +76,18 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Doctor-attached prescription files live in App_Data, not wwwroot -
+// wwwroot is wiped/overwritten on every FTP deploy (mirrors build output),
+// but App_Data is a sibling directory the deploy never touches.
+// Serve it under the same /uploads/prescriptions URL so no DB paths change.
+var prescriptionUploadsPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "uploads", "prescriptions");
+Directory.CreateDirectory(prescriptionUploadsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(prescriptionUploadsPath),
+    RequestPath = "/uploads/prescriptions"
+});
 
 app.UseRouting();
 

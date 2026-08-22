@@ -14,10 +14,12 @@ namespace Telemed.Controllers
     public class PrescriptionsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public PrescriptionsController(ApplicationDbContext context)
+        public PrescriptionsController(ApplicationDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         // GET: Prescriptions (Visible to both doctor & patient)
@@ -205,7 +207,7 @@ namespace Telemed.Controllers
 
             if (file != null && file.Length > 0)
             {
-                var uploadDir = Path.Combine("wwwroot", "uploads", "prescriptions");
+                var uploadDir = Path.Combine(_env.ContentRootPath, "App_Data", "uploads", "prescriptions");
                 if (!Directory.Exists(uploadDir))
                     Directory.CreateDirectory(uploadDir);
 
