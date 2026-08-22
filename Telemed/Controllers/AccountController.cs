@@ -121,6 +121,24 @@ namespace Telemed.Controllers
                 return digits.ToString();
             }
 
+            // Self-heal: a prior registration can create the AspNetUsers row (via
+            // CreateAsync) and then fail before the role/profile row is written,
+            // permanently blocking whatever unique field (email/phone/NID) it held.
+            // If the existing account is unconfirmed and has no Doctor/Patient
+            // profile, it's an orphan from a failed registration — delete it and
+            // let this attempt proceed instead of rejecting it forever. Returns
+            // true if it healed (deleted) the account, false if it's a real,
+            // completed account and the caller should block.
+            async Task<bool> TryHealOrphan(ApplicationUser candidate)
+            {
+                var hasDoctorProfile = await _context.Doctors.AnyAsync(d => d.UserId == candidate.Id);
+                var hasPatientProfile = await _context.Patients.AnyAsync(p => p.UserId == candidate.Id);
+                if (candidate.EmailConfirmed || hasDoctorProfile || hasPatientProfile) return false;
+
+                await _userManager.DeleteAsync(candidate);
+                return true;
+            }
+
             // Phone number check (ContactNumber only applies to Patient registration —
             // the field is hidden but still present in the DOM for Doctor, so ignore any
             // stale value it may carry when RegisterAs isn't Patient)
@@ -132,13 +150,15 @@ namespace Telemed.Controllers
                 var existingUserByPhone = await _userManager.Users
                     .FirstOrDefaultAsync(u => u.PhoneNumber == normalizedPhone);
 
-                if (existingUserByPhone != null)
+                if (existingUserByPhone != null && !await TryHealOrphan(existingUserByPhone))
                 {
                     ModelState.AddModelError(nameof(model.ContactNumber), "This contact number is already registered.");
                     return View(model);
                 }
 
-                // Check Patients table if needed (also store normalized there)
+                // Check Patients table if needed (also store normalized there).
+                // A Patient row always implies a completed registration, so no
+                // orphan case applies here.
                 var existingPatient = await _context.Patients
                     .FirstOrDefaultAsync(p => p.ContactNumber == normalizedPhone);
 
@@ -157,25 +177,42 @@ namespace Telemed.Controllers
             }
 
             var existingUser = await _userManager.FindByEmailAsync(email);
-            if (existingUser != null)
+            if (existingUser != null && !await TryHealOrphan(existingUser))
             {
-                // Self-heal orphaned accounts: a prior registration can create the
-                // AspNetUsers row (via CreateAsync) and then fail before the role/
-                // profile row is written, permanently blocking this email. If the
-                // existing account is unconfirmed and has no Doctor/Patient profile,
-                // it's an orphan from a failed registration — clean it up and let
-                // this attempt proceed instead of rejecting it forever.
-                var hasDoctorProfile = await _context.Doctors.AnyAsync(d => d.UserId == existingUser.Id);
-                var hasPatientProfile = await _context.Patients.AnyAsync(p => p.UserId == existingUser.Id);
+                ModelState.AddModelError(nameof(model.Email), "This email is already registered.");
+                return View(model);
+            }
 
-                if (!existingUser.EmailConfirmed && !hasDoctorProfile && !hasPatientProfile)
+            // NID/Passport number must be unique too — wasn't checked before.
+            var idNumber = model.IdNumber?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(idNumber))
+            {
+                var existingUserByIdNumber = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.IdNumber == idNumber);
+
+                if (existingUserByIdNumber != null && !await TryHealOrphan(existingUserByIdNumber))
                 {
-                    await _userManager.DeleteAsync(existingUser);
-                }
-                else
-                {
-                    ModelState.AddModelError(nameof(model.Email), "This email is already registered.");
+                    ModelState.AddModelError(nameof(model.IdNumber), "This NID/Passport number is already registered.");
                     return View(model);
+                }
+            }
+
+            // BM&DC registration number must be unique per doctor — wasn't checked
+            // before. A Doctor row always implies a completed registration, so no
+            // orphan case applies here.
+            if (model.RegisterAs == "Doctor")
+            {
+                var bmdcNumber = model.BMDCNumber?.Trim();
+                if (!string.IsNullOrEmpty(bmdcNumber))
+                {
+                    var existingBmdc = await _context.Doctors
+                        .FirstOrDefaultAsync(d => d.BMDCNumber == bmdcNumber);
+
+                    if (existingBmdc != null)
+                    {
+                        ModelState.AddModelError(nameof(model.BMDCNumber), "This BM&DC registration number is already registered.");
+                        return View(model);
+                    }
                 }
             }
 
@@ -196,7 +233,7 @@ namespace Telemed.Controllers
                 Address = model.Bio,
 
                 IdType = idTypeEnum,
-                IdNumber = model.IdNumber?.Trim() ?? string.Empty
+                IdNumber = idNumber
             };
 
             var createResult = await _userManager.CreateAsync(user, model.Password);
