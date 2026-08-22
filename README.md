@@ -4,6 +4,8 @@
 It connects doctors and patients for **virtual consultations**, enabling features like **online appointments, prescription management, video sessions**, and **role-based access control** for Admins, Doctors, and Patients.
 
 ---
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-2ea44f?style=for-the-badge&logo=googlechrome&logoColor=white)](http://telemedicine-abir.runasp.net/)
+---
 ## 📸 Screenshots
 
 ![Home](screenshots/home.png)
