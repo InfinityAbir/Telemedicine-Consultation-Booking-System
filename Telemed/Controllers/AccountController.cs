@@ -133,10 +133,28 @@ namespace Telemed.Controllers
             {
                 var hasDoctorProfile = await _context.Doctors.AnyAsync(d => d.UserId == candidate.Id);
                 var hasPatientProfile = await _context.Patients.AnyAsync(p => p.UserId == candidate.Id);
-                if (candidate.EmailConfirmed || hasDoctorProfile || hasPatientProfile) return false;
+                if (hasDoctorProfile || hasPatientProfile) return false;
 
-                await _userManager.DeleteAsync(candidate);
-                return true;
+                // An unconfirmed account with no profile is an orphan from a failed
+                // registration. A CONFIRMED account with no profile and no role is
+                // a different kind of orphan: its Doctor/Patient row was deleted by
+                // an admin (see Patients/DoctorsController Delete) without removing
+                // the login account. Either way, nothing in the app can use it, so
+                // it's safe to heal.
+                if (!candidate.EmailConfirmed)
+                {
+                    await _userManager.DeleteAsync(candidate);
+                    return true;
+                }
+
+                var roles = await _userManager.GetRolesAsync(candidate);
+                if (roles.Count == 0)
+                {
+                    await _userManager.DeleteAsync(candidate);
+                    return true;
+                }
+
+                return false;
             }
 
             // Phone number check (ContactNumber only applies to Patient registration —

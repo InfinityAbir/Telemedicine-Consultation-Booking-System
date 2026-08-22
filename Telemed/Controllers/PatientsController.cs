@@ -130,10 +130,15 @@ namespace Telemed.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var patient = await _context.Patients.FindAsync(id);
+            var patient = await _context.Patients.Include(p => p.User).FirstOrDefaultAsync(p => p.PatientId == id);
             if (patient != null)
             {
+                var user = patient.User;
                 _context.Patients.Remove(patient);
+                // Deleting only the profile leaves the login account behind as a
+                // permanent orphan: its email/phone/NID stay blocked forever with
+                // no role, no profile, and no way to register again. Remove it too.
+                if (user != null) _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
             }
 
