@@ -121,8 +121,10 @@ namespace Telemed.Controllers
                 return digits.ToString();
             }
 
-            // Phone number check
-            var normalizedPhone = NormalizePhone(model.ContactNumber);
+            // Phone number check (ContactNumber only applies to Patient registration —
+            // the field is hidden but still present in the DOM for Doctor, so ignore any
+            // stale value it may carry when RegisterAs isn't Patient)
+            var normalizedPhone = model.RegisterAs == "Doctor" ? string.Empty : NormalizePhone(model.ContactNumber);
 
             if (!string.IsNullOrEmpty(normalizedPhone))
             {
