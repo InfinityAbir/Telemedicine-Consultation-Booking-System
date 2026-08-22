@@ -46,6 +46,7 @@ jobs:
           server-dir: /wwwroot/
           exclude: |
             **/app_offline.htm
+            **/wwwroot/uploads/prescriptions/**
 
       - name: Bring app back online
         run: curl -s "ftp://${{ secrets.FTP_SERVER }}/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" -Q "DELE /wwwroot/app_offline.htm"
