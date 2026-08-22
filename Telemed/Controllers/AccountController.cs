@@ -159,8 +159,24 @@ namespace Telemed.Controllers
             var existingUser = await _userManager.FindByEmailAsync(email);
             if (existingUser != null)
             {
-                ModelState.AddModelError(nameof(model.Email), "This email is already registered.");
-                return View(model);
+                // Self-heal orphaned accounts: a prior registration can create the
+                // AspNetUsers row (via CreateAsync) and then fail before the role/
+                // profile row is written, permanently blocking this email. If the
+                // existing account is unconfirmed and has no Doctor/Patient profile,
+                // it's an orphan from a failed registration — clean it up and let
+                // this attempt proceed instead of rejecting it forever.
+                var hasDoctorProfile = await _context.Doctors.AnyAsync(d => d.UserId == existingUser.Id);
+                var hasPatientProfile = await _context.Patients.AnyAsync(p => p.UserId == existingUser.Id);
+
+                if (!existingUser.EmailConfirmed && !hasDoctorProfile && !hasPatientProfile)
+                {
+                    await _userManager.DeleteAsync(existingUser);
+                }
+                else
+                {
+                    ModelState.AddModelError(nameof(model.Email), "This email is already registered.");
+                    return View(model);
+                }
             }
 
             // 🔹 Map string IdType -> enum, and set IdNumber
@@ -191,39 +207,52 @@ namespace Telemed.Controllers
                 return View(model);
             }
 
-            if (!await _roleManager.RoleExistsAsync("Doctor"))
-                await _roleManager.CreateAsync(new IdentityRole("Doctor"));
-            if (!await _roleManager.RoleExistsAsync("Patient"))
-                await _roleManager.CreateAsync(new IdentityRole("Patient"));
-
-            if (model.RegisterAs == "Doctor")
+            try
             {
-                await _userManager.AddToRoleAsync(user, "Doctor");
-                var doctor = new Doctor
-                {
-                    UserId = user.Id,
-                    Specialization = model.Specialization,
-                    BMDCNumber = model.BMDCNumber,
-                    Qualification = model.Qualification,
-                    IsApproved = false,
-                    ConsultationFee = model.ConsultationFee ?? 0 // fallback to 0 if null
-                };
-                _context.Doctors.Add(doctor);
-            }
-            else
-            {
-                await _userManager.AddToRoleAsync(user, "Patient");
-                var patient = new Patient
-                {
-                    UserId = user.Id,
-                    DOB = model.DOB,
-                    Gender = model.Gender,
-                    ContactNumber = string.IsNullOrEmpty(normalizedPhone) ? model.ContactNumber : normalizedPhone // store normalized if available
-                };
-                _context.Patients.Add(patient);
-            }
+                if (!await _roleManager.RoleExistsAsync("Doctor"))
+                    await _roleManager.CreateAsync(new IdentityRole("Doctor"));
+                if (!await _roleManager.RoleExistsAsync("Patient"))
+                    await _roleManager.CreateAsync(new IdentityRole("Patient"));
 
-            await _context.SaveChangesAsync();
+                if (model.RegisterAs == "Doctor")
+                {
+                    await _userManager.AddToRoleAsync(user, "Doctor");
+                    var doctor = new Doctor
+                    {
+                        UserId = user.Id,
+                        Specialization = model.Specialization,
+                        BMDCNumber = model.BMDCNumber,
+                        Qualification = model.Qualification,
+                        IsApproved = false,
+                        ConsultationFee = model.ConsultationFee ?? 0 // fallback to 0 if null
+                    };
+                    _context.Doctors.Add(doctor);
+                }
+                else
+                {
+                    await _userManager.AddToRoleAsync(user, "Patient");
+                    var patient = new Patient
+                    {
+                        UserId = user.Id,
+                        DOB = model.DOB,
+                        Gender = model.Gender,
+                        ContactNumber = string.IsNullOrEmpty(normalizedPhone) ? model.ContactNumber : normalizedPhone // store normalized if available
+                    };
+                    _context.Patients.Add(patient);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                // Registration isn't atomic: CreateAsync already committed the
+                // AspNetUsers row above. If role/profile creation fails here, roll
+                // that back too so this email doesn't end up permanently stuck as
+                // "already registered" with no way to log in or retry.
+                await _userManager.DeleteAsync(user);
+                ModelState.AddModelError("", "Registration failed. Please try again.");
+                return View(model);
+            }
 
             // Generate email confirmation token and send email (encoded safely)
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
